@@ -1,0 +1,65 @@
+// See https://www.opendevstack.org/ods-documentation/ for usage and customization.
+
+@Library('ods-jenkins-shared-library@@shared_library_ref@') _
+
+odsComponentPipeline(
+  imageStreamTag: '@ods_namespace@/jenkins-agent-golang:@agent_image_tag@',
+  branchToEnvironmentMapping: [
+    'master': 'dev',
+    // 'release/': 'test'
+  ]
+) { context ->
+  odsComponentStageImportOpenShiftImageOrElse(context) {
+    stageCheckFormat(context)
+    stageLint(context)
+    stageUnitTest(context)
+    stageBuild(context)
+    odsComponentStageScanWithSonar(context)
+    odsComponentStageBuildOpenShiftImage(context)
+  }
+  odsComponentStageRolloutOpenShiftDeployment(context)
+}
+
+def stageCheckFormat(def context) {
+  stage('Check Format') {
+    def unformatted = sh(script: 'gofmt -l .', returnStdout: true)
+    if (unformatted) {
+      println "Unformatted files:\n${unformatted}"
+      error 'All files need to be gofmt\'d. Please run: gofmt -w .'
+    }
+  }
+}
+
+def stageLint(def context) {
+  stage('Lint') {
+    withEnv(["CGO_ENABLED=0", "GOCACHE=${WORKSPACE}/.cache"]) {
+      sh "golangci-lint run"
+    }
+  }
+}
+
+def stageBuild(def context) {
+  stage('Build') {
+    def binary = "app_linux_amd64"
+    withEnv(["CGO_ENABLED=0", "GOCACHE=${WORKSPACE}/.cache"]) {
+      sh "go build -o docker/${binary}"
+    }
+  }
+}
+
+def stageUnitTest(def context) {
+  stage('Unit Test') {
+    withEnv(["CGO_ENABLED=0", "GOCACHE=${WORKSPACE}/.cache"]) {
+      sh 'mkdir -p build/test-results/test'
+      def gopkgs = sh(script: 'go list ./... | grep -v /vendor', returnStdout: true).trim()
+      withEnv(["GOPKGS=${gopkgs}"]) {
+        def status = sh(script: 'go test -v -coverprofile=coverage.out $GOPKGS 2>&1 > test-results.txt', returnStatus: true)
+        sh 'cat test-results.txt | go-junit-report > build/test-results/test/report.xml'
+        if (status != 0) {
+          error "go test failed!"
+        }
+      }
+    }
+  }
+}
+
