@@ -1,6 +1,6 @@
 ---
-name: OpenJDK
-description: "OpenJDK is a free and open-source implementation of the Java Platform, Standard Edition. Technologies: Spring Boot 2.1, OpenJDK 11"
-supplier: https://adoptopenjdk.net
-version: 3.x
-type: ods
+name: "Sock Shop: Shipping"
+description: The shipping service of a socks-selling e-commerce demo application.
+supplier: https://github.com/microservices-demo/shipping
+version: 0.4.8
+

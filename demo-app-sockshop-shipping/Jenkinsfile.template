@@ -24,11 +24,21 @@ def stageBuild(def context) {
   if (springBootEnv.contains('-dev')) {
     springBootEnv = 'dev'
   }
-  stage('Build and Unit Test') {
-    withEnv(["TAGVERSION=${context.tagversion}", "NEXUS_HOST=${context.nexusHost}", "NEXUS_USERNAME=${context.nexusUsername}", "NEXUS_PASSWORD=${context.nexusPassword}", "JAVA_OPTS=${javaOpts}","GRADLE_TEST_OPTS=${gradleTestOpts}","ENVIRONMENT=${springBootEnv}"]) {
-      def status = sh(script: "./gradlew clean build --stacktrace --no-daemon", returnStatus: true)
+  stage('Build') {
+    withEnv(["TAGVERSION=${context.tagversion}", "JAVA_OPTS=${javaOpts}", "ENVIRONMENT=${springBootEnv}"]) {
+      def status = sh(script: "make install", returnStatus:true)
       if (status != 0) {
         error "Build failed!"
+      }
+
+      status = sh(script: "make test", returnStatus:true)
+      if (status != 0) {
+        error "Tests failed!"
+      }
+
+      status = sh(script:'cp target/shipping.jar docker/app.jar', returnStatus:true)
+      if (status != 0) {
+        error "Copying failed!"
       }
     }
   }

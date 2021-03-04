@@ -1,7 +1,37 @@
-# Backend / Spring Boot Application (be-java-springboot)
+[![Build Status](https://travis-ci.org/microservices-demo/shipping.svg?branch=master)](https://travis-ci.org/microservices-demo/shipping) [![Coverage Status](https://coveralls.io/repos/github/microservices-demo/shipping/badge.svg?branch=master)](https://coveralls.io/github/microservices-demo/shipping?branch=master)
+[![](https://images.microbadger.com/badges/image/weaveworksdemos/shipping.svg)](http://microbadger.com/images/weaveworksdemos/shipping "Get your own image badge on microbadger.com")
 
-Documentation is located in our [official documentation](https://www.opendevstack.org/ods-documentation/ods-quickstarters/latest/index.html)
+# shipping
+A microservices-demo service that provides shipping capabilities.
 
-Please update documentation in the [antora page directory](https://github.com/opendevstack/ods-quickstarters/tree/master/docs/modules/ROOT/pages)
+This build is built, tested and released by travis.
 
-Tested thru [automated tests](../tests/be-java-springboot)
+# Build
+
+## Java
+
+`mvn -DskipTests package`
+
+## Docker
+
+`GROUP=weaveworksdemos COMMIT=test ./scripts/build.sh`
+
+# Test
+
+`./test/test.sh < python testing file >`. For example: `./test/test.sh unit.py`
+
+# Run
+
+`mvn spring-boot:run`
+
+# Check
+
+`curl http://localhost:8080/health`
+
+# Use
+
+`curl http://localhost:8080`
+
+# Push
+
+`GROUP=weaveworksdemos COMMIT=test ./scripts/push.sh`
