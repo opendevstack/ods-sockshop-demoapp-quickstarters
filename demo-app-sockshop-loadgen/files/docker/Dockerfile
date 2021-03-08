@@ -1,8 +1,14 @@
-# add /overwrite FROM with your base image, and do whatever you like here :)
-FROM alpine:latest
+FROM vimagick/casperjs:latest
 
-RUN echo "building simple container"
+ADD docker-entrypoint.sh /config/docker-entrypoint.sh
+ADD casperjs.js /config/casperjs.js
 
-EXPOSE 8080
+# See https://docs.openshift.com/container-platform/3.11/creating_images/guidelines.html
+RUN chgrp -R 0 /config && \
+    chmod -R g=u /config && \
+    chmod +x /config/docker-entrypoint.sh
 
-CMD ["/bin/sh", "-c", "/usr/bin/nc -lk -p 8080 -e echo -e \"HTTP/1.1 200 OK\n\nHello World!\n$(date)\""]
+USER 1001
+
+ENTRYPOINT ["/config/docker-entrypoint.sh"]
+CMD ["/config/casperjs.js"]

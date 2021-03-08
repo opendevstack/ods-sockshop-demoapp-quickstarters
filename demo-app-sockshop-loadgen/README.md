@@ -1,8 +1,4 @@
-# Plain Docker image (docker-plain)
+# Load / Integration Tests
 
-Documentation is located in our [official documentation](https://www.opendevstack.org/ods-documentation/ods-quickstarters/latest/index.html)
-
-Please update documentation in the [antora page directory](https://github.com/opendevstack/ods-quickstarters/tree/master/docs/modules/ROOT/pages)
-
-Tested thru [automated tests](../tests/docker-plain)
+These tests simulate actual end user usage of the application. They are used to validate the overall functionality and can also be used to put simulated load on the system. The tests are written using [CasperJS](https://github.com/casperjs/casperjs)
 
