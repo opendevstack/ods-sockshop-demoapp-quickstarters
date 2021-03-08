@@ -1,2 +1,5 @@
 ---
-dependencies: []
+dependencies:
+  - demp-app-catalogue
+  - demo-app-orders
+
