@@ -1,0 +1,16 @@
+def odsNamespace = env.ODS_NAMESPACE ?: 'ods'
+def odsGitRef = env.ODS_GIT_REF ?: 'master'
+def odsImageTag = env.ODS_IMAGE_TAG ?: 'latest'
+
+library("ods-jenkins-shared-library@${odsGitRef}")
+
+odsQuickstarterPipeline(
+  imageStreamTag: "${odsNamespace}/jenkins-agent-maven:${odsImageTag}",
+) { context ->
+
+  odsQuickstarterStageCopyFiles(context)
+
+  odsQuickstarterStageRenderJenkinsfile(context)
+
+  odsQuickstarterStageRenderSonarProperties(context)
+}
