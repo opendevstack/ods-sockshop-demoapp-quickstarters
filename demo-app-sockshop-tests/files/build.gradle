@@ -1,6 +1,6 @@
 buildscript {
     ext {
-        nexus_url = "${project.findProperty('nexus_url') ?: System.getenv('NEXUS_URL') ?: System.getenv('NEXUS_HOST')}"
+        nexus_url = "${project.findProperty('nexus_url') ?: System.getenv('NEXUS_HOST')}"
         nexus_user = "${project.findProperty('nexus_user') ?: System.getenv('NEXUS_USERNAME')}"
         nexus_pw = "${project.findProperty('nexus_pw') ?: System.getenv('NEXUS_PASSWORD')}"
         no_nexus = (project.findProperty('no_nexus') ?: System.getenv('NO_NEXUS') ?: false).toBoolean()
@@ -64,8 +64,6 @@ ext {
     seleniumVersion = "3.141.59"
     htmlunitVersion = "2.36.0"
     unirestVersion = "3.2.00"
-    // When a test fail we can continue or fail the stage
-    CONTINUE_WHEN_TEST_FAIL = true
 }
 
 dependencies {
@@ -159,7 +157,7 @@ def executeTest(def type, def language) {
             useJUnitPlatform()
         }
 
-        ignoreFailures = "${CONTINUE_WHEN_TEST_FAIL}"
+        ignoreFailures = Boolean.getBoolean("test.ignoreFailures")
         testClassesDirs = sourceSets["${type}"].output.classesDirs
         classpath = sourceSets["${type}"].runtimeClasspath
     }

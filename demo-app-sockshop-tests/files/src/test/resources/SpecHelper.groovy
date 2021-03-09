@@ -4,7 +4,19 @@ import geb.spock.GebReportingSpec
 
 import java.util.regex.Pattern
 
+import kong.unirest.HttpResponse
+import kong.unirest.Unirest
+
 class SpecHelper {
+
+    public void resetCart(String customerId) {
+        def applicationProperties = getApplicationProperties()
+
+        HttpResponse response = Unirest.delete(applicationProperties."config.cart.service.url" + "/{customerId}")
+            .header("accept", "application/json")
+            .routeParam("customerId", customerId)
+            .asEmpty()
+    }
 
     public Properties getApplicationProperties() {
         def env = System.getenv()
@@ -30,15 +42,15 @@ class SpecHelper {
         return properties
     }
 
-    public static void printEvidenceForPageElement(GebReportingSpec spec, int testStepNumber, Navigator fragment, String description = '', int desiredLevel = -1) {
-        printEvidenceForPageElements(spec, testStepNumber, [ [ 'fragment' : fragment, 'description' :  description] ], desiredLevel)
+    public static void printEvidenceForPageElement(GebReportingSpec spec, int testStepNumber, Class page, Navigator fragment, String description = '', int desiredLevel = -1) {
+        printEvidenceForPageElements(spec, testStepNumber, page, [ [ 'fragment' : fragment, 'description' :  description] ], desiredLevel)
     }
 
-    public static void printEvidenceForPageElements(GebReportingSpec spec, int testStepNumber, List<Map> fragmentsAndDiscriptions, int desiredLevel = -1) {
+    public static void printEvidenceForPageElements(GebReportingSpec spec, int testStepNumber, Class page, List<Map> fragmentsAndDiscriptions, int desiredLevel = -1) {
         println '====================================='
         println "Test Case: ${spec.specificationContext.currentIteration.name}"
         println "Test Step: ${testStepNumber}"
-        println "Page URL: ${spec.getBrowser().getPage().getDriver().getCurrentUrl()}"
+        println "Page URL: ${page.newInstance().pageUrl}"
 
         if (!fragmentsAndDiscriptions || fragmentsAndDiscriptions.isEmpty()) {
             throw new IllegalArgumentException("Error: evidence fragment is empty!")
@@ -87,3 +99,4 @@ class SpecHelper {
         }
     }
 }
+
