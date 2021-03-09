@@ -1,6 +1,6 @@
 ---
-name: "be-fe-mono-repo"
-description: "a simple front / backend quickstarter"
-supplier: "none"
-version: "1.0"
-type: ods
+name: "Sock Shop: Queue-Master"
+description: The order processing service component of a socks-selling e-commerce demo application.
+supplier: https://github.com/microservices-demo/queue-master
+version: 0.3.1
+
