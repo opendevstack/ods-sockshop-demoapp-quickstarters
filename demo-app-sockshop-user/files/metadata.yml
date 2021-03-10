@@ -1,0 +1,6 @@
+---
+name: "Sock Shop: User"
+description: The user account service of a socks-selling e-commerce demo application.
+supplier: https://github.com/microservices-demo/user
+version: 0.4.7
+

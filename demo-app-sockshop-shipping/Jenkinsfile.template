@@ -1,0 +1,45 @@
+// See https://www.opendevstack.org/ods-documentation/ for usage and customization.
+
+@Library('ods-jenkins-shared-library@@ods_git_ref@') _
+
+odsComponentPipeline(
+  imageStreamTag: '@ods_namespace@/jenkins-agent-maven:@ods_image_tag@',
+  branchToEnvironmentMapping: [
+    'master': 'dev',
+    // 'release/': 'test'
+  ]
+) { context ->
+  odsComponentStageImportOpenShiftImageOrElse(context) {
+    stageBuild(context)
+    odsComponentStageScanWithSonar(context)
+    odsComponentStageBuildOpenShiftImage(context)
+  }
+  odsComponentStageRolloutOpenShiftDeployment(context)
+}
+
+def stageBuild(def context) {
+  def javaOpts = "-Xmx512m"
+  def gradleTestOpts = "-Xmx128m"
+  def springBootEnv = context.environment
+  if (springBootEnv.contains('-dev')) {
+    springBootEnv = 'dev'
+  }
+  stage('Build') {
+    withEnv(["TAGVERSION=${context.tagversion}", "JAVA_OPTS=${javaOpts}", "ENVIRONMENT=${springBootEnv}"]) {
+      def status = sh(script: "make install", returnStatus:true)
+      if (status != 0) {
+        error "Build failed!"
+      }
+
+      status = sh(script: "make test", returnStatus:true)
+      if (status != 0) {
+        error "Tests failed!"
+      }
+
+      status = sh(script:'cp target/shipping.jar docker/app.jar', returnStatus:true)
+      if (status != 0) {
+        error "Copying failed!"
+      }
+    }
+  }
+}

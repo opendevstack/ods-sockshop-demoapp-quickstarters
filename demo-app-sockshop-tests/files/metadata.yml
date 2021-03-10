@@ -1,0 +1,6 @@
+---
+name: "Sock Shop: Tests"
+description: Automated tests for a socks-selling e-commerce demo application.
+supplier: https://github.com/microservices-demo/
+version: 1.0
+

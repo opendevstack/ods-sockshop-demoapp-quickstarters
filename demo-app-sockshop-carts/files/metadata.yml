@@ -1,0 +1,6 @@
+---
+name: "Sock Shop: Shopping Cart"
+description: The shopping cart service of a socks-selling e-commerce demo application.
+supplier: https://github.com/microservices-demo/carts
+version: 0.4.8
+

@@ -1,0 +1,39 @@
+// See https://www.opendevstack.org/ods-documentation/ for usage and customization.
+
+@Library('ods-jenkins-shared-library@@ods_git_ref@') _
+
+odsComponentPipeline(
+  imageStreamTag: '@ods_namespace@/jenkins-agent-maven:@ods_image_tag@',
+  branchToEnvironmentMapping: [
+    'master': 'dev',
+    // 'release/': 'test'
+  ]
+) { context ->
+  stageTest(context)
+  odsComponentStageScanWithSonar(context)
+}
+
+def stageTest(def context) {
+  def javaOpts = "-Xmx512m"
+  def gradleTestOpts = "-Xmx128m"
+  def springBootEnv = context.environment
+  if (springBootEnv.contains('-dev')) {
+    springBootEnv = 'dev'
+  }
+
+  // can be replaced with context.openshiftApplicationDomain in ODS3
+  def openshiftApplicationDomain = "inh-devapps.eu.boehringer.com"
+
+  stage('Test') {
+    withEnv(["TAGVERSION=${context.tagversion}", "NEXUS_HOST=${context.nexusHost}", "NEXUS_USERNAME=${context.nexusUsername}", "NEXUS_PASSWORD=${context.nexusPassword}", "JAVA_OPTS=${javaOpts}","GRADLE_TEST_OPTS=${gradleTestOpts}","ENVIRONMENT=${springBootEnv}","OPENSHIFT_PROJECT=${context.targetProject}", "OPENSHIFT_PUBLIC_HOST=${openshiftApplicationDomain}"]) {
+      def status = sh(script: "./gradlew clean test --stacktrace --no-daemon -Dtest.ignoreFailures=true", returnStatus: true)
+      junit(testResults:"build/test-results/installation*/*.xml, build/test-results/integration*/*.xml, build/test-results/acceptance*/*.xml", allowEmptyResults: true)
+      stash(name: "installation-test-reports-junit-xml-${context.componentId}-${context.buildNumber}", includes: 'build/test-results/installation*/*.xml', allowEmpty: true)
+      stash(name: "integration-test-reports-junit-xml-${context.componentId}-${context.buildNumber}", includes: 'build/test-results/integration*/*.xml', allowEmpty: true)
+      stash(name: "acceptance-test-reports-junit-xml-${context.componentId}-${context.buildNumber}", includes: 'build/test-results/acceptance*/*.xml', allowEmpty: true)
+      if (status != 0) {
+        error "Executing tests failed!"
+      }
+    }
+  }
+}
