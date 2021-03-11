@@ -10,15 +10,6 @@ odsQuickstarterPipeline(
 
   odsQuickstarterStageCopyFiles(context)
 
-  stage('Initialize new Go module') {
-    dir(context.targetDir) {
-      sh(
-        script: "go mod init example.com/${context.projectId}/${context.projectId}-${context.componentId}",
-        label: 'Initialize new Go module'
-      )
-    }
-  }
-
   odsQuickstarterStageCreateOpenShiftResources(
     context,
     [directory: 'common/ocp-config/component-environment']
