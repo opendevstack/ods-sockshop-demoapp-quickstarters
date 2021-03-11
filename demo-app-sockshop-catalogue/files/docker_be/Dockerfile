@@ -1,8 +1,5 @@
-# add /overwrite FROM with your base image, and do whatever you like here :)
-FROM alpine:latest
+FROM registry.access.redhat.com/rhscl/mysql-57-rhel7:latest
 
-RUN echo "building simple backend container"
+ENV MYSQL_DATABASE="socksdb"
 
-EXPOSE 8081
-
-CMD ["/bin/sh", "-c", "/usr/bin/nc -lk -p 8081 -e echo -e \"HTTP/1.1 200 OK\n\nHello World!\n$(date)\""]
+COPY ./db/ /opt/app-root/src

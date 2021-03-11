@@ -51,6 +51,7 @@ INSERT IGNORE INTO tag (name) VALUES ("black");
 INSERT IGNORE INTO tag (name) VALUES ("magic");
 INSERT IGNORE INTO tag (name) VALUES ("green");
 
+
 INSERT IGNORE INTO sock_tag VALUES ("6d62d909-f957-430e-8689-b5129c0bb75e", "2");
 INSERT IGNORE INTO sock_tag VALUES ("6d62d909-f957-430e-8689-b5129c0bb75e", "9");
 INSERT IGNORE INTO sock_tag VALUES ("a0a4f044-b040-410d-8ead-4de0446aec7e", "4");
@@ -76,7 +77,3 @@ INSERT IGNORE INTO sock_tag VALUES ("3395a43e-2d88-40de-b95f-e00e1502085b", "4")
 INSERT IGNORE INTO sock_tag VALUES ("837ab141-399e-4c1f-9abc-bace40296bac", "1");
 INSERT IGNORE INTO sock_tag VALUES ("837ab141-399e-4c1f-9abc-bace40296bac", "11");
 INSERT IGNORE INTO sock_tag VALUES ("837ab141-399e-4c1f-9abc-bace40296bac", "3");
-
-
-
-

@@ -4,7 +4,7 @@
 
 // depending on what techs are needed, a different agent image may be used below
 odsComponentPipeline(
-  imageStreamTag: '@ods_namespace@/jenkins-agent-base:@ods_image_tag@',
+  imageStreamTag: '@ods_namespace@/jenkins-agent-golang:@ods_image_tag@',
   openshiftBuildTimeout: 30,
   branchToEnvironmentMapping: [
     'master': 'dev',
@@ -12,10 +12,8 @@ odsComponentPipeline(
   ]
 ) { context ->
   stageCheckFormat(context)
-  stageUnitTestFrontend(context)
-  stageUnitTestBackend(context)
   stageBuildFrontend(context)
-  stageBuildBackend(context)
+  stageUnitTestFrontend(context)
   stageLint(context)
 
   odsComponentStageScanWithSonar(context)
@@ -83,14 +81,14 @@ def stageBuildFrontend(def context) {
       if (status != 0) {
         error "Can´t get dependencies with gvt!"
       }
-      status = sh(script: "go build -o docker/${binary} github.com/microservices-demo/${microservice_name}/cmd/${microservice_name}svc", returnStatus:true)
+      status = sh(script: "go build -o docker_fe/${binary} github.com/microservices-demo/${microservice_name}/cmd/${microservice_name}svc", returnStatus:true)
       // Finally we compile the go program
       if (status != 0) {
         error "Build failed!"
       }
 
       // We copy the images folder to build in Docker image
-      status = sh(script: "mkdir -p docker/images && cp -R images/* docker/images/", returnStatus:true)
+      status = sh(script: "mkdir -p docker_fe/images && cp -R images/* docker_fe/images/", returnStatus:true)
       if (status != 0) {
         error "Copy images failed!"
       }

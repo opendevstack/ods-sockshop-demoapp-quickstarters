@@ -157,7 +157,7 @@ objects:
             deploymentconfig: '${COMPONENT}'
             env: '${ENV}'
         spec:
-          containers:
+          containers:   
             - image: '${PROJECT}-${ENV}/${COMPONENT}-frontend:${TAGVERSION}'
               imagePullPolicy: IfNotPresent
               name: '${COMPONENT}-frontend'
@@ -173,6 +173,31 @@ objects:
                   memory: '${MEMORY_REQUEST}'
               terminationMessagePath: /dev/termination-log
               terminationMessagePolicy: File
+              env:
+                - name: DSN
+                  value: 'user4HB:oK1WPDBNnDDspd5x@tcp(localhost:3306)/socksdb'
+                - name: MYSQL_DATABASE
+                  valueFrom:
+                    secretKeyRef:
+                      key: database-name
+                      name: demo-app-catalogue-db
+                - name: MYSQL_USER
+                  valueFrom:
+                    secretKeyRef:
+                      key: database-user
+                      name: demo-app-catalogue-db
+                - name: MYSQL_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      key: database-password
+                      name: demo-app-catalogue-db
+                - name: MYSQL_ROOT_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      key: database-root-password
+                      name: demo-app-catalogue-db
+                - name: MYSQL_HOST
+                  value: 127.0.0.1                                    
             - image: '${PROJECT}-${ENV}/${COMPONENT}-backend:${TAGVERSION}'
               imagePullPolicy: IfNotPresent
               name: '${COMPONENT}-backend'
@@ -187,7 +212,28 @@ objects:
                   cpu:  '${CPU_REQUEST}'
                   memory: '${MEMORY_REQUEST}'
               terminationMessagePath: /dev/termination-log
-              terminationMessagePolicy: File              
+              terminationMessagePolicy: File
+              env:
+                - name: MYSQL_DATABASE
+                  valueFrom:
+                    secretKeyRef:
+                      key: database-name
+                      name: demo-app-catalogue-db
+                - name: MYSQL_USER
+                  valueFrom:
+                    secretKeyRef:
+                      key: database-user
+                      name: demo-app-catalogue-db
+                - name: MYSQL_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      key: database-password
+                      name: demo-app-catalogue-db
+                - name: MYSQL_ROOT_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      key: database-root-password
+                      name: demo-app-catalogue-db                 
           dnsPolicy: ClusterFirst
           restartPolicy: Always
           schedulerName: default-scheduler
@@ -214,3 +260,31 @@ objects:
               name: '${COMPONENT}-frontend:${TAGVERSION}'
               namespace: '${PROJECT}-${ENV}'
           type: ImageChange
+  - apiVersion: v1
+    kind: Route
+    metadata:
+      name: '${PROJECT}-${COMPONENT}'
+      labels:
+        app: '${PROJECT}-${COMPONENT}'
+    spec:
+      to:
+        kind: Service
+        name: '${COMPONENT}-frontend'
+  - apiVersion: v1
+    data:
+      database-name: c29ja3NkYg==
+      database-password: b0sxV1BEQk5uRERzcGQ1eA==
+      database-root-password: YzNDSndNR0JzdThSYkFXcQ==
+      database-user: dXNlcjRIQg==
+    kind: Secret
+    metadata:
+      annotations:
+        template.openshift.io/expose-database_name: '{.data[''database-name'']}'
+        template.openshift.io/expose-password: '{.data[''database-password'']}'
+        template.openshift.io/expose-root_password: '{.data[''database-root-password'']}'
+        template.openshift.io/expose-username: '{.data[''database-user'']}'
+      labels:
+        app: '${PROJECT}-${COMPONENT}'
+      name: demo-app-catalogue-db
+    type: Opaque
+
