@@ -1,8 +1,16 @@
-# add /overwrite FROM with your base image, and do whatever you like here :)
-FROM alpine:latest
+FROM adoptopenjdk/openjdk11:alpine-jre
 
-RUN echo "building simple frontend container"
+WORKDIR /app
+COPY app.jar ./app.jar
+
+# See https://docs.openshift.com/container-platform/3.11/creating_images/guidelines.html
+RUN chgrp -R 0 /app && \
+    chmod -R g=u /app
+
+ENV JAVA_OPTS=-Dorg.slf4j.simpleLogger.defaultLogLevel=warn
+
+USER 1001
 
 EXPOSE 8080
 
-CMD ["/bin/sh", "-c", "/usr/bin/nc -lk -p 8080 -e echo -e \"HTTP/1.1 200 OK\n\nHello World!\n$(date)\""]
+CMD ["java","-Xmx512m", "-jar", "./app.jar", "--port=8080", "--db=127.0.0.1"]
