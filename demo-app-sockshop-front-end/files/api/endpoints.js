@@ -4,6 +4,9 @@
   var util = require('util');
 
   var domain = "-" + process.env.OPENSHIFT_BUILD_NAMESPACE + "." + process.env.OPENSHIFT_HOST;
+  if (process.env.USE_SERVICE === 'true') {
+     domain = ':8080'
+  }
   process.argv.forEach(function (val, index, array) {
     var arg = val.split("=");
     if (arg.length > 1) {
