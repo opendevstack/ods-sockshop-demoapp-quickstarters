@@ -4,7 +4,7 @@
 
 // depending on what techs are needed, a different agent image may be used below
 odsComponentPipeline(
-  imageStreamTag: '@ods_namespace@/jenkins-agent-base:@ods_image_tag@',
+  imageStreamTag: '@ods_namespace@/jenkins-agent-golang:@ods_image_tag@',
   openshiftBuildTimeout: 30,
   branchToEnvironmentMapping: [
     'master': 'dev',
@@ -12,10 +12,8 @@ odsComponentPipeline(
   ]
 ) { context ->
   stageCheckFormat(context)
-  stageUnitTestFrontend(context)
-  stageUnitTestBackend(context)
   stageBuildFrontend(context)
-  stageBuildBackend(context)
+  stageUnitTestFrontend(context)
   stageLint(context)
 
   odsComponentStageScanWithSonar(context)
@@ -65,7 +63,7 @@ def stageBuildFrontend(def context) {
       if (status != 0) {
         error "Can´t get dependencies with glide!"
       }
-      status = sh(script: "go build -o docker/${binary} src/github.com/microservices-demo/${microservice_name}/main.go", returnStatus:true)
+      status = sh(script: "go build -o docker_fe/${binary} src/github.com/microservices-demo/${microservice_name}/main.go", returnStatus:true)
       // Finally we compile the go program
       if (status != 0) {
         error "Build failed!"

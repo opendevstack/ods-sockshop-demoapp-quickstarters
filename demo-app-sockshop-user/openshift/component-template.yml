@@ -41,6 +41,24 @@ parameters:
     displayName: Completion Deadline Seconds
     description: how long the docker build of the component can last before it is canceled
     value: "1800"
+  - name: MONGODB_USER
+    displayName: MongoDB user
+    description: Database user
+    value: "userGBV"
+  - name: MONGODB_PASSWORD
+    displayName: MongoDB password
+    description: Database password
+    generate: expression
+    from: '[a-zA-Z0-0]{16}'
+  - name: MONGODB_ADMIN_PASSWORD
+    displayName: MongoDB admin password
+    description: Database admin password
+    generate: expression
+    from: '[a-zA-Z0-0]{16}'
+  - name: MONGODB_DATABASE
+    displayName: MongoDB database
+    description: Database database
+    value: "users"        
 objects:
   - apiVersion: v1
     kind: Service
@@ -63,10 +81,10 @@ objects:
       name: '${COMPONENT}-backend'
     spec:
       ports:
-      -   name: 8081-tcp
-          port: 8081
+      -   name: 27017-tcp
+          port: 27017
           protocol: TCP
-          targetPort: 8081
+          targetPort: 27017
       selector:
         app: '${PROJECT}-${COMPONENT}'
         deploymentconfig: '${COMPONENT}'
@@ -158,7 +176,24 @@ objects:
             env: '${ENV}'
         spec:
           containers:
-            - image: '${PROJECT}-${ENV}/${COMPONENT}-frontend:${TAGVERSION}'
+            - env:
+              - name: HATEAOS
+                value: ${COMPONENT}-${PROJECT}-${ENV}.ocp.odsbox.lan
+              - name: MONGO_PASS
+                valueFrom:
+                  secretKeyRef:
+                    key: database-password
+                    name: demo-app-user-db
+              - name: MONGO_USER
+                valueFrom:
+                  secretKeyRef:
+                    key: database-user
+                    name: demo-app-user-db
+              - name: MONGO_DB
+                value: 127.0.0.1
+              - name: MONGO_TEST_DB
+                value: users          
+              image: '${PROJECT}-${ENV}/${COMPONENT}-frontend:${TAGVERSION}'
               imagePullPolicy: IfNotPresent
               name: '${COMPONENT}-frontend'
               ports:
@@ -173,7 +208,28 @@ objects:
                   memory: '${MEMORY_REQUEST}'
               terminationMessagePath: /dev/termination-log
               terminationMessagePolicy: File
-            - image: '${PROJECT}-${ENV}/${COMPONENT}-backend:${TAGVERSION}'
+            - env:
+              - name: MONGODB_USER
+                valueFrom:
+                  secretKeyRef:
+                    key: database-user
+                    name: demo-app-user-db
+              - name: MONGODB_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    key: database-password
+                    name: demo-app-user-db
+              - name: MONGODB_ADMIN_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    key: database-admin-password
+                    name: demo-app-user-db
+              - name: MONGODB_DATABASE
+                valueFrom:
+                  secretKeyRef:
+                    key: database-name
+                    name: demo-app-user-db                
+              image: '${PROJECT}-${ENV}/${COMPONENT}-backend:${TAGVERSION}'
               imagePullPolicy: IfNotPresent
               name: '${COMPONENT}-backend'
               ports:
@@ -214,3 +270,21 @@ objects:
               name: '${COMPONENT}-frontend:${TAGVERSION}'
               namespace: '${PROJECT}-${ENV}'
           type: ImageChange
+  - apiVersion: v1
+    stringData:
+      database-admin-password: ${MONGODB_ADMIN_PASSWORD}
+      database-name: ${MONGODB_DATABASE}
+      database-password: ${MONGODB_PASSWORD}
+      database-user: ${MONGODB_USER}
+    kind: Secret
+    metadata:
+      annotations:
+        template.openshift.io/expose-admin_password: '{.data[''database-admin-password'']}'
+        template.openshift.io/expose-database_name: '{.data[''database-name'']}'
+        template.openshift.io/expose-password: '{.data[''database-password'']}'
+        template.openshift.io/expose-username: '{.data[''database-user'']}'
+      labels:
+        app: '${PROJECT}-${COMPONENT}'
+        template: mongodb-persistent-template
+      name: demo-app-user-db
+    type: Opaque
