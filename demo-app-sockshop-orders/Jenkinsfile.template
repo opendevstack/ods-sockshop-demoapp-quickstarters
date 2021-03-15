@@ -4,7 +4,7 @@
 
 // depending on what techs are needed, a different agent image may be used below
 odsComponentPipeline(
-  imageStreamTag: '@ods_namespace@/jenkins-agent-base:@ods_image_tag@',
+  imageStreamTag: '@ods_namespace@/jenkins-agent-maven:@ods_image_tag@',
   openshiftBuildTimeout: 30,
   branchToEnvironmentMapping: [
     'master': 'dev',
@@ -50,7 +50,7 @@ def stageBuildFrontend(def context) {
         error "Tests failed!"
       }
 
-      status = sh(script:'cp target/orders.jar docker/app.jar', returnStatus:true)
+      status = sh(script:'cp target/orders.jar docker_fe/app.jar', returnStatus:true)
       if (status != 0) {
         error "Copying failed!"
       }
