@@ -13,4 +13,4 @@ USER 1001
 
 EXPOSE 8080
 
-CMD ["java","-Xmx512m", "-jar", "./app.jar", "--port=8080", "--db=127.0.0.1"]
+CMD ["java","-Xmx512m", "-jar", "./app.jar", "--port=8080", "--db=localhost"]

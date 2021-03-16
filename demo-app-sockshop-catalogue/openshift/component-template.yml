@@ -45,33 +45,18 @@ objects:
   - apiVersion: v1
     kind: Service
     metadata:
-      name: '${COMPONENT}-frontend'
+      name: '${COMPONENT}'
     spec:
       ports:
-      -   name: 8080-tcp
-          port: 8080
-          protocol: TCP
-          targetPort: 8080
+        -   name: 8080-tcp
+            port: 8080
+            protocol: TCP
+            targetPort: 8080
       selector:
         app: '${PROJECT}-${COMPONENT}'
         deploymentconfig: '${COMPONENT}'
       sessionAffinity: None
       type: ClusterIP
-  - apiVersion: v1
-    kind: Service
-    metadata:
-      name: '${COMPONENT}-backend'
-    spec:
-      ports:
-      -   name: 8081-tcp
-          port: 8081
-          protocol: TCP
-          targetPort: 8081
-      selector:
-        app: '${PROJECT}-${COMPONENT}'
-        deploymentconfig: '${COMPONENT}'
-      sessionAffinity: None
-      type: ClusterIP      
   - apiVersion: v1
     kind: ImageStream
     metadata:
@@ -131,6 +116,20 @@ objects:
         dockerStrategy: {}
       successfulBuildsHistoryLimit: 5
   - apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      finalizers:
+        - kubernetes.io/pvc-protection
+      labels:
+        app: ${PROJECT}-${COMPONENT}
+      name: ${COMPONENT}-backend
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+  - apiVersion: v1
     kind: DeploymentConfig
     metadata:
       name: '${COMPONENT}'
@@ -143,13 +142,7 @@ objects:
       strategy:
         activeDeadlineSeconds: 21600
         resources: {}
-        rollingParams:
-          intervalSeconds: 1
-          maxSurge: 25%
-          maxUnavailable: 25%
-          timeoutSeconds: 600
-          updatePeriodSeconds: 1
-        type: Rolling
+        type: Recreate
       template:
         metadata:
           labels:
@@ -157,7 +150,7 @@ objects:
             deploymentconfig: '${COMPONENT}'
             env: '${ENV}'
         spec:
-          containers:   
+          containers:
             - image: '${PROJECT}-${ENV}/${COMPONENT}-frontend:${TAGVERSION}'
               imagePullPolicy: IfNotPresent
               name: '${COMPONENT}-frontend'
@@ -180,30 +173,48 @@ objects:
                   valueFrom:
                     secretKeyRef:
                       key: database-name
-                      name: demo-app-catalogue-db
+                      name: '${COMPONENT}'
                 - name: MYSQL_USER
                   valueFrom:
                     secretKeyRef:
                       key: database-user
-                      name: demo-app-catalogue-db
+                      name: '${COMPONENT}'
                 - name: MYSQL_PASSWORD
                   valueFrom:
                     secretKeyRef:
                       key: database-password
-                      name: demo-app-catalogue-db
+                      name: '${COMPONENT}'
                 - name: MYSQL_ROOT_PASSWORD
                   valueFrom:
                     secretKeyRef:
                       key: database-root-password
-                      name: demo-app-catalogue-db
+                      name: '${COMPONENT}'
                 - name: MYSQL_HOST
-                  value: 127.0.0.1                                    
+                  value: localhost
             - image: '${PROJECT}-${ENV}/${COMPONENT}-backend:${TAGVERSION}'
               imagePullPolicy: IfNotPresent
+              livenessProbe:
+                failureThreshold: 3
+                initialDelaySeconds: 30
+                periodSeconds: 10
+                successThreshold: 1
+                tcpSocket:
+                  port: 3306
+                timeoutSeconds: 1
               name: '${COMPONENT}-backend'
-              ports:
-                - containerPort: 8081
-                  protocol: TCP
+              readinessProbe:
+                exec:
+                  command:
+                    - /bin/sh
+                    - -i
+                    - -c
+                    - MYSQL_PWD="$MYSQL_PASSWORD" mysql -h 127.0.0.1 -u $MYSQL_USER -D $MYSQL_DATABASE
+                      -e 'SELECT 1'
+                failureThreshold: 3
+                initialDelaySeconds: 5
+                periodSeconds: 10
+                successThreshold: 1
+                timeoutSeconds: 1
               resources:
                 limits:
                   cpu:  '${CPU_LIMIT}'
@@ -218,27 +229,34 @@ objects:
                   valueFrom:
                     secretKeyRef:
                       key: database-name
-                      name: demo-app-catalogue-db
+                      name: '${COMPONENT}'
                 - name: MYSQL_USER
                   valueFrom:
                     secretKeyRef:
                       key: database-user
-                      name: demo-app-catalogue-db
+                      name: '${COMPONENT}'
                 - name: MYSQL_PASSWORD
                   valueFrom:
                     secretKeyRef:
                       key: database-password
-                      name: demo-app-catalogue-db
+                      name: '${COMPONENT}'
                 - name: MYSQL_ROOT_PASSWORD
                   valueFrom:
                     secretKeyRef:
                       key: database-root-password
-                      name: demo-app-catalogue-db                 
+                      name: '${COMPONENT}'
+              volumeMounts:
+                - mountPath: /var/lib/mysql/data
+                  name: ${COMPONENT}-backend-data
           dnsPolicy: ClusterFirst
           restartPolicy: Always
           schedulerName: default-scheduler
           securityContext: {}
           terminationGracePeriodSeconds: 30
+          volumes:
+            - name: ${COMPONENT}-backend-data
+              persistentVolumeClaim:
+                claimName: ${COMPONENT}-backend
       test: false
       triggers:
         - type: ConfigChange
@@ -261,16 +279,6 @@ objects:
               namespace: '${PROJECT}-${ENV}'
           type: ImageChange
   - apiVersion: v1
-    kind: Route
-    metadata:
-      name: '${PROJECT}-${COMPONENT}'
-      labels:
-        app: '${PROJECT}-${COMPONENT}'
-    spec:
-      to:
-        kind: Service
-        name: '${COMPONENT}-frontend'
-  - apiVersion: v1
     data:
       database-name: c29ja3NkYg==
       database-password: b0sxV1BEQk5uRERzcGQ1eA==
@@ -278,13 +286,7 @@ objects:
       database-user: dXNlcjRIQg==
     kind: Secret
     metadata:
-      annotations:
-        template.openshift.io/expose-database_name: '{.data[''database-name'']}'
-        template.openshift.io/expose-password: '{.data[''database-password'']}'
-        template.openshift.io/expose-root_password: '{.data[''database-root-password'']}'
-        template.openshift.io/expose-username: '{.data[''database-user'']}'
       labels:
         app: '${PROJECT}-${COMPONENT}'
-      name: demo-app-catalogue-db
+      name: '${COMPONENT}'
     type: Opaque
-

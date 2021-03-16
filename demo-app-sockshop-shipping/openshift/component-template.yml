@@ -115,7 +115,7 @@ objects:
           containers:   
             - env:
               - name: RABBITMQ_HOST
-                value: rabbitmq
+                value: demo-app-queue-master
               image: '${PROJECT}-${ENV}/${COMPONENT}:${TAGVERSION}'
               imagePullPolicy: IfNotPresent
               name: '${COMPONENT}'

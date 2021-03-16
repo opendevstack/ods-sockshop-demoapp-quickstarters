@@ -16,10 +16,10 @@ parameters:
     displayName: Environment
     description: The environment stage.
     required: true
-  - name: CLUSTER_BASE_DOMAIN
-    displayName: Cluster base domain
-    description: Base domain of the openshift cluster.
-    value: cluster.local
+  - name: DOMAIN
+    displayName: Service domain
+    description: Base domain for the services.
+    value: ':8080'
   - name: MEMORY_LIMIT
     displayName: Memory Limit
     description: Maximum amount of memory available for the container.
@@ -174,13 +174,7 @@ objects:
       strategy:
         activeDeadlineSeconds: 21600
         resources: {}
-        rollingParams:
-          intervalSeconds: 1
-          maxSurge: 25%
-          maxUnavailable: 25%
-          timeoutSeconds: 600
-          updatePeriodSeconds: 1
-        type: Rolling
+        type: Recreate
       template:
         metadata:
           labels:
@@ -191,7 +185,7 @@ objects:
           containers:
             - env:
                 - name: DOMAIN
-                  value: ${PROJECT}-${ENV}.svc.${CLUSTER_BASE_DOMAIN}:8080
+                  value: '${DOMAIN}'
                 - name: MONGO_PASS
                   valueFrom:
                     secretKeyRef:
@@ -259,9 +253,6 @@ objects:
                   port: 27017
                 timeoutSeconds: 1
               name: '${COMPONENT}-backend'
-              ports:
-                - containerPort: 27017
-                  protocol: TCP
               readinessProbe:
                 exec:
                   command:

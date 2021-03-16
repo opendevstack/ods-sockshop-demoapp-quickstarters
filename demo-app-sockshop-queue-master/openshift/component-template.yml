@@ -45,24 +45,13 @@ objects:
   - apiVersion: v1
     kind: Service
     metadata:
-      name: '${COMPONENT}-frontend'
+      name: '${COMPONENT}'
     spec:
       ports:
       -   name: 8080-tcp
           port: 8080
           protocol: TCP
           targetPort: 8080
-      selector:
-        app: '${PROJECT}-${COMPONENT}'
-        deploymentconfig: '${COMPONENT}'
-      sessionAffinity: None
-      type: ClusterIP
-  - apiVersion: v1
-    kind: Service
-    metadata:
-      name: '${COMPONENT}-backend'
-    spec:
-      ports:
       -   name: erl-epmd
           port: 4369
           protocol: TCP
@@ -79,7 +68,7 @@ objects:
         app: '${PROJECT}-${COMPONENT}'
         deploymentconfig: '${COMPONENT}'
       sessionAffinity: None
-      type: ClusterIP      
+      type: ClusterIP
   - apiVersion: v1
     kind: ImageStream
     metadata:

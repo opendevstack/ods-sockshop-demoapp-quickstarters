@@ -21,12 +21,9 @@ def stageTest(def context) {
     springBootEnv = 'dev'
   }
 
-  // can be replaced with context.openshiftApplicationDomain in ODS3
-  def openshiftApplicationDomain = "inh-devapps.eu.boehringer.com"
-
   stage('Test') {
-    withEnv(["TAGVERSION=${context.tagversion}", "NEXUS_HOST=${context.nexusHost}", "NEXUS_USERNAME=${context.nexusUsername}", "NEXUS_PASSWORD=${context.nexusPassword}", "JAVA_OPTS=${javaOpts}","GRADLE_TEST_OPTS=${gradleTestOpts}","ENVIRONMENT=${springBootEnv}","OPENSHIFT_PROJECT=${context.targetProject}", "OPENSHIFT_PUBLIC_HOST=${openshiftApplicationDomain}"]) {
-      def status = sh(script: "./gradlew clean test --stacktrace --no-daemon -Dtest.ignoreFailures=true", returnStatus: true)
+    withEnv(["TAGVERSION=${context.tagversion}", "NEXUS_HOST=${context.nexusHost}", "NEXUS_USERNAME=${context.nexusUsername}", "NEXUS_PASSWORD=${context.nexusPassword}", "JAVA_OPTS=${javaOpts}","GRADLE_TEST_OPTS=${gradleTestOpts}","ENVIRONMENT=${springBootEnv}","OPENSHIFT_PROJECT=${context.targetProject}"]) {
+      def status = sh(script: "sh ./gradlew clean test --stacktrace --no-daemon -Dtest.ignoreFailures=true", returnStatus: true)
       junit(testResults:"build/test-results/installation*/*.xml, build/test-results/integration*/*.xml, build/test-results/acceptance*/*.xml", allowEmptyResults: true)
       stash(name: "installation-test-reports-junit-xml-${context.componentId}-${context.buildNumber}", includes: 'build/test-results/installation*/*.xml', allowEmpty: true)
       stash(name: "integration-test-reports-junit-xml-${context.componentId}-${context.buildNumber}", includes: 'build/test-results/integration*/*.xml', allowEmpty: true)
