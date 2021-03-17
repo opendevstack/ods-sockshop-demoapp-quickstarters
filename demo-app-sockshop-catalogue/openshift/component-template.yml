@@ -190,7 +190,7 @@ objects:
                       key: database-root-password
                       name: '${COMPONENT}'
                 - name: MYSQL_HOST
-                  value: localhost
+                  value: 127.0.0.1
             - image: '${PROJECT}-${ENV}/${COMPONENT}-backend:${TAGVERSION}'
               imagePullPolicy: IfNotPresent
               livenessProbe:
@@ -211,10 +211,10 @@ objects:
                     - MYSQL_PWD="$MYSQL_PASSWORD" mysql -h 127.0.0.1 -u $MYSQL_USER -D $MYSQL_DATABASE
                       -e 'SELECT 1'
                 failureThreshold: 3
-                initialDelaySeconds: 5
+                initialDelaySeconds: 10
                 periodSeconds: 10
                 successThreshold: 1
-                timeoutSeconds: 1
+                timeoutSeconds: 2
               resources:
                 limits:
                   cpu:  '${CPU_LIMIT}'
