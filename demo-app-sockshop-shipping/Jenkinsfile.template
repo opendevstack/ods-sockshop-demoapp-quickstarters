@@ -7,7 +7,9 @@ odsComponentPipeline(
   branchToEnvironmentMapping: [
     'master': 'dev',
     // 'release/': 'test'
-  ]
+  ],
+  testResults: "target/surefire-reports",
+  sonarQubeBranch: '*'
 ) { context ->
   odsComponentStageImportOpenShiftImageOrElse(context) {
     stageBuild(context)

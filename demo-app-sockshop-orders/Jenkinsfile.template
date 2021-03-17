@@ -9,7 +9,9 @@ odsComponentPipeline(
   branchToEnvironmentMapping: [
     'master': 'dev',
     // 'release/': 'test'
-  ]
+  ],
+  testResults: "target/surefire-reports",
+  sonarQubeBranch: '*'
 ) { context ->
   stageUnitTestFrontend(context)
   stageUnitTestBackend(context)

@@ -7,7 +7,8 @@ odsComponentPipeline(
   branchToEnvironmentMapping: [
     'master': 'dev',
     // 'release/': 'test'
-  ]
+  ],
+  sonarQubeBranch: '*' 
 ) { context ->
     stageCheckFormat(context)
     stageBuild(context)
