@@ -62,14 +62,14 @@ function add_qs_to_bitbucket() {
   git clone ssh://git@bitbucket.odsbox.lan:7999/opendevstack/ods-quickstarters.git
   cd ods-quickstarters
   git checkout 3.x 
-  cp -R $scriptPath/../edpc-quickstarters-demo/demo* /tmp/ods-quickstarters
+  cp -R $scriptPath/../demo* /tmp/ods-quickstarters
   git add .
   git commit -m "Sock Shop Demo QS"
   git push
   rm -Rf /tmp/ods-quickstarters
   popd
 }
-add_sock_shop_demo_qs
+#add_sock_shop_demo_qs
 add_qs_to_bitbucket
 
 
