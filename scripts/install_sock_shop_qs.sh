@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
 set -eu
 
@@ -36,40 +36,58 @@ SSDQS="
     jenkinspipeline.quickstarter.demo-app-sockshop-tests.desc=Demo App - SockShop E2E Tests
     jenkinspipeline.quickstarter.demo-app-sockshop-tests.repo=ods-quickstarters
 "
-function add_sock_shop_demo_qs() {
 
+function add_sock_shop_demo_qs() {
   echo "Starting EDP Project Type configuration in ProvApp"
   echo "...some debug information first"
   oc login -u developer -p password
   oc whoami
   oc project ods
-
-  CM=$(oc get -o yaml cm/additional-templates.properties)
-  echo "${CM//properties: |/properties: |$SSDQS}" > cm.yaml
-
-  echo "... Apply configmap change"
-  oc apply -f cm.yaml
   
-  echo "...restart ProvApp to reload new configuration"
+  echo "...Modifing config map"
+  CM=$(oc get -o yaml cm/additional-templates.properties)
+  exitCode=0
+  echo "$CM" | grep sock-shop-demo || exitCode=$?
+  if [ $exitCode -eq 0 ]; then
+    echo ">>>> Quickstarters already installed"
+  else
+    echo "... cm with the quickstarters does not exits"
+    echo "${CM//properties: |/properties: |$SSDQS}" > cm.yaml
 
-  oc rollout latest dc/ods-provisioning-app
+    echo "... Apply configmap change"
+    oc apply -f cm.yaml
+  
+    echo "...restart ProvApp to reload new configuration"
+
+    oc rollout latest dc/ods-provisioning-app
+  fi
 }
 
 function add_qs_to_bitbucket() {
+  local QS_DIRECTORY="./demo-app-sockshop-carts"
   scriptPath=$PWD
   pushd /tmp
-  
+  if [ -d "ods-quickstarters" ]; then
+    rm -Rf ods-quickstarters
+  fi
   git clone ssh://git@bitbucket.odsbox.lan:7999/opendevstack/ods-quickstarters.git
   cd ods-quickstarters
-  git checkout 3.x 
-  cp -R $scriptPath/../demo* /tmp/ods-quickstarters
-  git add .
-  git commit -m "Sock Shop Demo QS"
-  git push
+  git checkout 3.x
+  if [ -d "$QS_DIRECTORY" ]; then
+    echo ">>>> Quickstarters already deployed to local Bitbucket"
+  else
+    cp -R $scriptPath/../demo* /tmp/ods-quickstarters
+    git add .
+    git commit -m "Sock Shop Demo QS"
+    git push
+    popd
+  fi
+
+  echo "Cleanup"
   rm -Rf /tmp/ods-quickstarters
-  popd
 }
-#add_sock_shop_demo_qs
+
+add_sock_shop_demo_qs
 add_qs_to_bitbucket
 
 
