@@ -65,14 +65,38 @@ function add_sock_shop_demo_qs() {
 
 function add_qs_to_bitbucket() {
   local QS_DIRECTORY="./demo-app-sockshop-carts"
-  scriptPath=$PWD
+  local scriptPath=$PWD
   pushd /tmp
   if [ -d "ods-quickstarters" ]; then
     rm -Rf ods-quickstarters
   fi
   git clone ssh://git@bitbucket.odsbox.lan:7999/opendevstack/ods-quickstarters.git
   cd ods-quickstarters
-  git checkout 3.x
+
+
+  local branch=$(git branch)
+  if [ -z $branch ]; then 
+    branch=$(git branch -a)
+    local branches=( $branch )
+    if [ ${#branches[@]} -gt 1 ]; then
+       PS3='Please enter the branch to deploy the QS: '
+
+       select opt in "${branches[@]}"
+       do
+         if [ 1 -le "$REPLY" ] && [ "$REPLY" -le ${#branches[@]} ]; then
+            echo "The selected branch is $opt"
+            branch=$opt
+            break;
+         else
+            echo "Wrong selection: Select any number from 1-${#branches[@]}"
+         fi 
+       done
+    fi
+  fi
+  branch=${branch/remotes\/origin\//}
+  
+  git checkout $branch
+
   if [ -d "$QS_DIRECTORY" ]; then
     echo ">>>> Quickstarters already deployed to local Bitbucket"
   else
