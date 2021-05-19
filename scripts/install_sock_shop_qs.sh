@@ -74,7 +74,7 @@ function add_qs_to_bitbucket() {
   cd ods-quickstarters
 
 
-  local branch=$(git branch)
+  local branch=$(git branch --show-current)
   if [ -z $branch ]; then 
     branch=$(git branch -a)
     local branches=( $branch )
