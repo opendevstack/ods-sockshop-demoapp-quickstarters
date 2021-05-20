@@ -74,26 +74,26 @@ function add_qs_to_bitbucket() {
   cd ods-quickstarters
 
 
-  local branch=$(git branch --show-current)
-  if [ -z $branch ]; then 
-    branch=$(git branch -a)
-    local branches=( $branch )
-    if [ ${#branches[@]} -gt 1 ]; then
-       PS3='Please enter the branch to deploy the QS: '
+  local branch=$(git branch -l -a --format='%(refname:short)')
+  branch=${branch/origin\/HEAD/}
+  local branches=( ${branch} )
 
-       select opt in "${branches[@]}"
-       do
-         if [ 1 -le "$REPLY" ] && [ "$REPLY" -le ${#branches[@]} ]; then
-            echo "The selected branch is $opt"
-            branch=$opt
-            break;
-         else
-            echo "Wrong selection: Select any number from 1-${#branches[@]}"
-         fi 
-       done
-    fi
+  if [ ${#branches[@]} -gt 1 ]; then
+     PS3='Please enter the branch to deploy the QS: '
+
+     select opt in "${branches[@]}"
+     do
+       if [ 1 -le "$REPLY" ] && [ "$REPLY" -le ${#branches[@]} ]; then
+          echo "The selected branch is $opt"
+          branch=$opt
+          break;
+       else
+          echo "Wrong selection: Select any number from 1-${#branches[@]}"
+       fi
+     done
   fi
-  branch=${branch/remotes\/origin\//}
+  
+  branch=${branch/origin\//}
   
   git checkout $branch
 
