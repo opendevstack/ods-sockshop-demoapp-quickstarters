@@ -1,5 +1,8 @@
 ---
-name: OpenJDK
+name: loadgen
 description: "OpenJDK is a free and open-source implementation of the Java Platform, Standard Edition. Technologies: Spring Boot 2.1, OpenJDK 11"
 supplier: https://adoptopenjdk.net
 version: 2.x
+runtime: casperjs
+partOf: demo-app-sockshop
+role: test
