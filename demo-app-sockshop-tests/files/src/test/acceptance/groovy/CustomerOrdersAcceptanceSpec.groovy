@@ -16,7 +16,7 @@ class CustomerOrdersPage extends Page {
 @Stepwise
 class CustomerOrdersAcceptanceSpec extends GebReportingSpec {
 
-    def "EDPTB142_User buys some socks"() {
+    def "User buys some socks"() {
         expect:
         true
         /*

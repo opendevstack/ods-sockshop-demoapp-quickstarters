@@ -8,7 +8,7 @@ import spock.lang.Stepwise
 @Stepwise
 class LoginAcceptanceSpec extends GebReportingSpec {
 
-    def "EDPTB143_User logs in"() {
+    def "User logs in"() {
         expect:
         given: "The user goes to home page"
         to HomePage

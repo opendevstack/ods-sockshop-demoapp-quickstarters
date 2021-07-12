@@ -16,7 +16,7 @@ class CartPage extends Page {
 @Stepwise
 class CartAcceptanceSpec extends GebReportingSpec {
 
-    def "EDPTB140_Users can put items into the shopping cart"() {
+    def "Users can put items into the shopping cart"() {
         new SpecHelper().resetCart("5df1f0179e602c00011dd5dc")
 
         // Test inputs

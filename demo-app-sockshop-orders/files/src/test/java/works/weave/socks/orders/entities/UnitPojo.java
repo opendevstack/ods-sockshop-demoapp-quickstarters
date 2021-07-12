@@ -30,7 +30,7 @@ public class UnitPojo {
     }
 
     @Test
-    public void NET5146_testPojoStructureAndBehavior() {
+    public void testPojoStructureAndBehavior() {
         Validator validator = ValidatorBuilder.create()
                 // Add Rules to validate structure for POJO_PACKAGE
                 // See com.openpojo.validation.rule.impl for more ...

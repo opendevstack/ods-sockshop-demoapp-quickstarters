@@ -33,7 +33,7 @@ public class UnitCartResource {
     }
 
     @Test
-    public void NET5145_whenDestroyRemoveItem() {
+    public void whenDestroyRemoveItem() {
         Cart cart = new Cart(customerId);
         fake.save(cart);
         CartResource cartResource = new CartResource(fake, customerId);

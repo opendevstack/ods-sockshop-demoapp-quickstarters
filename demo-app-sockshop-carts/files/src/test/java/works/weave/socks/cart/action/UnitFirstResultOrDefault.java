@@ -10,21 +10,21 @@ import static org.junit.Assert.assertThat;
 
 public class UnitFirstResultOrDefault {
     @Test
-    public void NET1001_whenEmptyUsesDefault() {
+    public void whenEmptyUsesDefault() {
         String defaultValue = "test";
         FirstResultOrDefault<String> CUT = new FirstResultOrDefault<>(Collections.emptyList(), () -> defaultValue);
         assertThat(CUT.get(), equalTo(defaultValue));
     }
 
     @Test
-    public void NET996_whenNotEmptyUseFirst() {
+    public void whenNotEmptyUseFirst() {
         String testValue = "test";
         FirstResultOrDefault<String> CUT = new FirstResultOrDefault<>(Arrays.asList(testValue), () -> "nonDefault");
         assertThat(CUT.get(), equalTo(testValue));
     }
 
     @Test
-    public void NET994_whenMultipleNotEmptyUseFirst() {
+    public void whenMultipleNotEmptyUseFirst() {
         String testValue = "test";
         FirstResultOrDefault<String> CUT = new FirstResultOrDefault<>(Arrays.asList(testValue, "test2"), () ->
                 "nonDefault");

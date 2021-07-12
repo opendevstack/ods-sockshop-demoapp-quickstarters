@@ -20,7 +20,7 @@ class CataloguePage extends Page {
 @Stepwise
 class CatalogueAcceptanceSpec extends GebReportingSpec {
 
-    def "EDPTB141_User shows catalogue"() {
+    def "User shows catalogue"() {
         expect:
         given: "The user goes to catalogue page"
         to CataloguePage
