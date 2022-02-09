@@ -157,7 +157,7 @@ objects:
       name: ${COMPONENT}-backend
     spec:
       accessModes:
-        - ReadWriteOnce
+        - ReadWriteMany
       resources:
         requests:
           storage: 1Gi
