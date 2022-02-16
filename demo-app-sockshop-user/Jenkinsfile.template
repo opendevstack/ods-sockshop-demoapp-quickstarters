@@ -28,9 +28,15 @@ odsComponentPipeline(
   odsComponentStageBuildOpenShiftImage(
     context, [resourceName: "${context.componentId}-backend", dockerDir: "docker_be"])
 
-  def deploymentInfo = odsComponentStageRolloutOpenShiftDeployment(context)
+  def deploymentInfo = odsComponentStageRolloutOpenShiftDeployment(context, [tailorParams: [
+    "PROJECT=${context.projectId}",
+    "COMPONENT=${context.componentId}",
+    "ENV=${context.environment}"
+  ]])
 
-  stageTestDeployedComponents (context, deploymentInfo)
+  echo "Deployment Info: ${deploymentInfo}"
+
+  //stageTestDeployedComponents (context, deploymentInfo)
 }
 
 def stageBuildFrontend(def context) {

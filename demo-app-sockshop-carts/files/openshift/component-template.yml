@@ -19,19 +19,19 @@ parameters:
   - name: MEMORY_LIMIT
     displayName: Memory Limit
     description: Maximum amount of memory available for the container.
-    value: 256Mi
+    value: 512Mi
   - name: MEMORY_REQUEST
     displayName: Memory Request
     description: Minimum amount of memory requested for the container.
-    value: 128Mi
+    value: 256Mi
   - name: CPU_LIMIT
     displayName: CPU Limit
     description: Maximum CPU (milli) cores available for the container.
-    value: 100m
+    value: 500m
   - name: CPU_REQUEST
     displayName: CPU Request
     description: Minimum CPU (milli) cores requested for the container.
-    value: 50m
+    value: 250m
   - name: TAGVERSION
     displayName: tag version
     description: The version to be used.

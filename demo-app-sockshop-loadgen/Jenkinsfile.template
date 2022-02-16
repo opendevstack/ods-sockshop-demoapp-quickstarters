@@ -20,7 +20,14 @@ odsComponentPipeline(
     */
     odsComponentStageBuildOpenShiftImage(context)
   }
-  odsComponentStageRolloutOpenShiftDeployment(context)
+
+  def deploymentInfo = odsComponentStageRolloutOpenShiftDeployment(context, [tailorParams: [
+    "PROJECT=${context.projectId}",
+    "COMPONENT=${context.componentId}",
+    "ENV=${context.environment}"
+  ]])
+
+  echo "Deployment Info: ${deploymentInfo}"
 }
 
 def stageBuild(def context) {
