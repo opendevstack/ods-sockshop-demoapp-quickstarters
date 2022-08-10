@@ -1,11 +1,15 @@
-# edpc-quickstarters-demo
+# ods-sockshop-demoapp-quickstarters
 
-Quickstarters used for provisioning EDP demo applications
-# Installing quickstarters
-Having a EDPbox created with the ODS->EDP box installation scripts you can install the Quickstarters of the SockShopDemo with the script provided
-```sh
-  $ install_sock_shop_qs.sh
-```
-## Running the release manager
-You can find a sample metadata.yaml for the release-manager in the sample folder. 
-To make it work, change all the occurrence of *sock* to the id of your jira project in that file.
+An OpenDevStack demo application based on https://github.com/microservices-demo.
+
+## Samples
+
+### Provisioning App Properties
+You can find a sample prov-app.properties file for the Provisioning App in the sample folder. 
+
+If you own a Provisioning App installation, you can apply these properties to the existing OpenShift ConfigMap of your ODS installation.
+
+### Release Manager Configuration
+You can find a sample metadata.yaml file for the Release Manager in the sample folder. 
+
+To make it work, change all occurrences of *sock* to the *id* of your Jira project in that file.
