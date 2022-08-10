@@ -47,6 +47,6 @@ repositories:
 capabilities:
   - LeVADocs:
       GAMPCategory: 5
-      templatesVersion: "1.1"      
+      templatesVersion: "1.2"
 # Uncomment (below) to allow partial rebuilding during development
 # allowPartialRebuild: true
