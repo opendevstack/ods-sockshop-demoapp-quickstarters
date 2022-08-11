@@ -1,0 +1,9 @@
+---
+name: front-end
+description: The front-end application of a socks-selling e-commerce demo application.
+supplier: https://github.com/microservices-demo/front-end
+version: 0.3.12
+runtime: nodejs
+runtimeVersion: 10
+partOf: demo-app-sockshop
+role: frontend

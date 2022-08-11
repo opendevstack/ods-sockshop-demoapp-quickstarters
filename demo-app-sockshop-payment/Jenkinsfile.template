@@ -1,0 +1,93 @@
+// See https://www.opendevstack.org/ods-documentation/ for usage and customization.
+
+@Library('ods-jenkins-shared-library@@ods_git_ref@') _
+
+odsComponentPipeline(
+  imageStreamTag: '@ods_namespace@/jenkins-agent-golang:@ods_image_tag@',
+  branchToEnvironmentMapping: [
+    'master': 'dev',
+    // 'release/': 'test'
+  ],
+  sonarQubeBranch: '*' 
+) { context ->
+    stageCheckFormat(context)
+    stageBuild(context)
+    stageUnitTest(context)
+    stageLint(context)
+    stageScanForSonarqube(context)
+    stageStartOpenshiftBuild(context)
+    stageDeployToOpenshift(context)
+}
+def stageCheckFormat(def context) {
+  stage('Check Format') {
+    def unformatted = sh(script: 'gofmt -l .', returnStdout: true)
+    if (unformatted) {
+      println "Unformatted files:\n${unformatted}"
+      error 'All files need to be gofmt\'d. Please run: gofmt -w .'
+    }
+  }
+}
+
+def stageLint(def context) {
+  stage('Lint') {
+    withEnv(["CGO_ENABLED=1", "GOCACHE=${WORKSPACE}/.cache", "GOPATH=${WORKSPACE}"]) {
+      sh "golangci-lint run src/github.com/microservices-demo/payment/"
+    }
+  }
+}
+
+def stageBuild(def context) {
+  stage('Build') {
+    def binary = "app_linux_amd64"
+    def microservice_name = "payment"
+    withEnv(["CGO_ENABLED=1", "GOOS=linux", "GOCACHE=${WORKSPACE}/.cache", "GOPATH=${WORKSPACE}"]) {
+      // We create the structure to compile the project
+      def status = sh(script: "mkdir -p src/github.com/microservices-demo/${microservice_name}/", returnStatus:true)
+      if (status != 0) {
+        error "Can´t create the structure to build app!"
+      }
+      status = sh(script: "rsync -Rr ./ ./src/github.com/microservices-demo/${microservice_name}/", returnStatus:true)
+      if (status != 0) {
+        error "Can´t copy the app source inside the folder to compile!"
+      }
+      
+      // We need and extra tool (imposible to install in /usr/local/bin permission error, then only download --> -d)
+      status = sh(script: "go get -u -d github.com/FiloSottile/gvt", returnStatus:true)
+      if (status != 0) {
+        error "Can´t download gvt to process dependencies!"
+      }
+      // We compile the tool
+      status = sh(script: "go build -o gvt github.com/FiloSottile/gvt", returnStatus:true)
+      if (status != 0) {
+        error "Can´t compile gvt!"
+      }
+
+      // We download the dependencies using the tool gvt
+      status = sh(script: "cd src/github.com/microservices-demo/${microservice_name}/ && ${GOPATH}/gvt restore", returnStatus:true)
+      if (status != 0) {
+        error "Can´t get dependencies with gvt!"
+      }
+      status = sh(script: "go build -o docker/${binary} github.com/microservices-demo/${microservice_name}/cmd/${microservice_name}svc", returnStatus:true)
+      // Finally we compile the go program   
+      if (status != 0) {
+        error "Build failed!"
+      }
+    }
+  }
+}
+
+def stageUnitTest(def context) {
+  stage('Unit Test') {
+    withEnv(["CGO_ENABLED=1", "GOCACHE=${WORKSPACE}/.cache", "GOPATH=${WORKSPACE}"]) {
+      sh 'mkdir -p build/test-results/test'
+      def gopkgs = sh(script: 'go list github.com/microservices-demo/payment | grep -v /vendor', returnStdout: true).trim()
+      withEnv(["GOPKGS=${gopkgs}"]) {
+        def status = sh(script: 'go test -v -cover $GOPKGS 2>&1 > test-results.txt', returnStatus: true)
+        sh 'cat test-results.txt | go-junit-report > build/test-results/test/report.xml'
+        if (status != 0) {
+          error "go test -v -cover $GOPKGS failed!"
+        }
+      }
+    }
+  }
+}

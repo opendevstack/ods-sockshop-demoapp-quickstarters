@@ -1,0 +1,94 @@
+// See https://www.opendevstack.org/ods-documentation/ for usage and customization.
+
+@Library('ods-jenkins-shared-library@@ods_git_ref@') _
+
+// depending on what techs are needed, a different agent image may be used below
+odsComponentPipeline(
+  imageStreamTag: '@ods_namespace@/jenkins-agent-maven:@ods_image_tag@',
+  openshiftBuildTimeout: 30,
+  branchToEnvironmentMapping: [
+    'master': 'dev',
+    // 'release/': 'test'
+  ],
+  testResults: "target/surefire-reports",
+  sonarQubeBranch: '*'
+) { context ->
+  stageUnitTestFrontend(context)
+  stageUnitTestBackend(context)
+  stageBuildFrontend(context)
+  stageBuildBackend(context)
+
+  odsComponentStageScanWithSonar(context)
+
+  /*
+   * resourceName maps to the BuildConfig/ImageStream name,
+   * dockerDir points to the directory that contains the Dockerfile
+   */
+  odsComponentStageBuildOpenShiftImage(
+    context, [resourceName: "${context.componentId}-frontend", dockerDir: "docker_fe"])
+  odsComponentStageBuildOpenShiftImage(
+    context, [resourceName: "${context.componentId}-backend", dockerDir: "docker_be"])
+
+  def deploymentInfo = odsComponentStageRolloutOpenShiftDeployment(context, [tailorParams: [
+    "PROJECT=${context.projectId}",
+    "COMPONENT=${context.componentId}",
+    "ENV=${context.environment}"
+  ]])
+
+  echo "Deployment Info: ${deploymentInfo}"
+
+  //stageTestDeployedComponents (context, deploymentInfo)
+}
+
+def stageBuildFrontend(def context) {
+  def javaOpts = "-Xmx512m"
+  def springBootEnv = context.environment
+  if (springBootEnv.contains('-dev')) {
+    springBootEnv = 'dev'
+  }
+  stage('Build frontend') {
+    withEnv(["TAGVERSION=${context.tagversion}", "JAVA_OPTS=${javaOpts}", "ENVIRONMENT=${springBootEnv}"]) {
+      def status = sh(script: "make install", returnStatus:true)
+      if (status != 0) {
+        error "Build failed!"
+      }
+
+      status = sh(script: "make test", returnStatus:true)
+      if (status != 0) {
+        error "Tests failed!"
+      }
+
+      status = sh(script:'cp target/orders.jar docker_fe/app.jar', returnStatus:true)
+      if (status != 0) {
+        error "Copying failed!"
+      }
+    }
+  }
+}
+
+def stageBuildBackend(def context) {
+  stage('Build backend') {
+	// build your backend
+  }
+}
+
+def stageUnitTestFrontend(def context) {
+  stage('Unit Test Frontend') {
+  	// copy into same test results folder
+  }
+}
+
+def stageUnitTestBackend(def context) {
+  stage('Unit Test Backend') {
+  	// copy into same test results folder
+  }
+}
+
+def stageTestDeployedComponents(def context, def deploymentInfo) {
+  stage('Test Deployed Component') {
+	sh (script : "oc port-forward ${deploymentInfo.podName} 8081 -n ${context.targetProject} &", label : "Setting up port forward for pod ${deploymentInfo.podName}")
+	// wait for port-forward to map the ports or for 10s
+	sh (script : "timeout 10s bash -c 'until ! curl -v --silent http://localhost:8081 2>&1 | grep -m 1 \"Connection refused\"; do sleep 1 ; done'; echo -e \\\\a", 
+        label : "send request to service")
+  }
+}
