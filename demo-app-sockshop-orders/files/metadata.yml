@@ -1,0 +1,9 @@
+---
+name: orders
+description: The ordering service of a socks-selling e-commerce demo application.
+supplier: https://github.com/microservices-demo/orders
+version: 0.4.7
+runtime: spring-boot
+runtimeVersion: 1.4.4.RELEASE
+partOf: demo-app-sockshop
+role: backend

@@ -1,0 +1,59 @@
+// See https://www.opendevstack.org/ods-documentation/ for usage and customization.
+
+@Library('ods-jenkins-shared-library@@ods_git_ref@') _
+
+odsComponentPipeline(
+  imageStreamTag: '@ods_namespace@/jenkins-agent-nodejs12:@ods_image_tag@',
+  branchToEnvironmentMapping: [
+    'master': 'dev',
+    // 'release/': 'test'
+  ],
+  testResults: "results",
+  sonarQubeBranch: '*'
+) { context ->
+  odsComponentStageImportOpenShiftImageOrElse(context) {
+    stageBuild(context)
+    stageUnitTest(context)
+    odsComponentStageScanWithSonar(context)
+    odsComponentStageBuildOpenShiftImage(context)
+  }
+
+  def deploymentInfo = odsComponentStageRolloutOpenShiftDeployment(context, [tailorParams: [
+    "PROJECT=${context.projectId}",
+    "COMPONENT=${context.componentId}",
+    "ENV=${context.environment}"
+  ]])
+
+  echo "Deployment Info: ${deploymentInfo}"
+}
+
+def stageBuild(def context) {
+  stage('Build') {
+// Disable yarn install as yarn is not configured to use our enterprise proxy server
+//     def status = sh(script: "yarn install", returnStatus:true)
+     def status = sh(script: "npm install", returnStatus:true)
+     if (status != 0) {
+       error "Build failed!"
+     }
+
+     status = sh(script: "mkdir -p docker/dist && cp {package.json,server.js,config.js} docker/dist && cp -r helpers public api node_modules docker/dist/", returnStatus:true)
+     if (status != 0) {
+       error "Copy application failed!"
+     }
+  }
+}
+
+def stageUnitTest(def context) {
+  stage('Unit Test') {
+    def status = sh(script: "npm run coverage -- --progress false --domain=test", returnStatus:true)
+    if (status != 0) {
+      error "Tests failed!"
+    }
+  }
+}
+
+def stageLint(def context) {
+  stage('Lint') {
+    sh "npm run lint"
+  }
+}

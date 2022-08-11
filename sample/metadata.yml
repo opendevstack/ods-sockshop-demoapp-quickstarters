@@ -1,0 +1,52 @@
+id: sock
+name: Project sock
+description: Description of sock.
+
+services:
+  bitbucket:
+    credentials:
+      id: sock-cd-cd-user-with-password
+
+# Uncomment (below) to connect to jira
+  jira:
+    credentials:
+      id: sock-cd-cd-user-with-password
+  nexus:
+    repository:
+      name: leva-documentation
+
+repositories:
+  - id: demo-app-carts
+    name: sock-demo-app-carts
+    type: ods
+  - id: demo-app-catalogue
+    name: sock-demo-app-catalogue
+    type: ods
+  - id: demo-app-front-end
+    name: sock-demo-app-front-end
+    type: ods
+  - id: demo-app-orders
+    name: sock-demo-app-orders
+    type: ods
+  - id: demo-app-payment
+    name: sock-demo-app-payment
+    type: ods
+  - id: demo-app-queue-master
+    name: sock-demo-app-queue-master
+    type: ods
+  - id: demo-app-shipping
+    name: sock-demo-app-shipping
+    type: ods
+  - id: demo-app-user
+    name: sock-demo-app-user
+    type: ods
+  - id: demo-app-test
+    name: sock-demo-app-test
+    type: ods-test
+# Uncomment (below) to generate documents      
+capabilities:
+  - LeVADocs:
+      GAMPCategory: 5
+      templatesVersion: "1.2"
+# Uncomment (below) to allow partial rebuilding during development
+# allowPartialRebuild: true

@@ -1,0 +1,8 @@
+---
+dependencies:
+  - demp-app-cart
+  - demo-app-payment
+  - demo-app-queue-master
+  - demo-app-shipping
+  - demo-app-user
+

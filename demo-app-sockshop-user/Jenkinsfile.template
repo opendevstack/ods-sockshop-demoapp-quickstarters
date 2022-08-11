@@ -1,0 +1,135 @@
+// See https://www.opendevstack.org/ods-documentation/ for usage and customization.
+
+@Library('ods-jenkins-shared-library@@ods_git_ref@') _
+
+// depending on what techs are needed, a different agent image may be used below
+odsComponentPipeline(
+  imageStreamTag: '@ods_namespace@/jenkins-agent-golang:@ods_image_tag@',
+  openshiftBuildTimeout: 30,
+  branchToEnvironmentMapping: [
+    'master': 'dev',
+    // 'release/': 'test'
+  ],
+  sonarQubeBranch: '*'
+) { context ->
+  stageCheckFormat(context)
+  stageBuildFrontend(context)
+  stageUnitTestFrontend(context)
+  stageLint(context)
+
+  odsComponentStageScanWithSonar(context)
+
+  /*
+   * resourceName maps to the BuildConfig/ImageStream name,
+   * dockerDir points to the directory that contains the Dockerfile
+   */
+  odsComponentStageBuildOpenShiftImage(
+    context, [resourceName: "${context.componentId}-frontend", dockerDir: "docker_fe"])
+  odsComponentStageBuildOpenShiftImage(
+    context, [resourceName: "${context.componentId}-backend", dockerDir: "docker_be"])
+
+  def deploymentInfo = odsComponentStageRolloutOpenShiftDeployment(context, [tailorParams: [
+    "PROJECT=${context.projectId}",
+    "COMPONENT=${context.componentId}",
+    "ENV=${context.environment}"
+  ]])
+
+  echo "Deployment Info: ${deploymentInfo}"
+
+  //stageTestDeployedComponents (context, deploymentInfo)
+}
+
+def stageBuildFrontend(def context) {
+  stage('Build frontend') {
+    def binary = "app_linux_amd64"
+    def microservice_name = "user"
+    withEnv(["CGO_ENABLED=0", "GOOS=linux", "GOCACHE=${WORKSPACE}/.cache", "GOPATH=${WORKSPACE}"]) {
+      // We create the structure to compile the project
+      def status = sh(script: "mkdir -p src/github.com/microservices-demo/${microservice_name}/", returnStatus:true)
+      if (status != 0) {
+        error "Can´t create the structure to build app!"
+      }
+      status = sh(script: "rsync -Rr ./ ./src/github.com/microservices-demo/${microservice_name}/", returnStatus:true)
+      if (status != 0) {
+        error "Can´t copy the app source inside the folder to compile!"
+      }
+
+      // We need and extra tool - glide
+      status = sh(script: "go get -v -d github.com/Masterminds/glide", returnStatus:true)
+      if (status != 0) {
+        error "Can´t download glide to process dependencies!"
+      }
+      // We compile the tool
+      status = sh(script: "go build -o glide github.com/Masterminds/glide", returnStatus:true)
+      if (status != 0) {
+        error "Can´t compile glide!"
+      }
+
+      // We download the dependencies using the tool glide
+      status = sh(script: "cd src/github.com/microservices-demo/${microservice_name}/ && ${GOPATH}/glide install", returnStatus:true)
+      if (status != 0) {
+        error "Can´t get dependencies with glide!"
+      }
+      status = sh(script: "go build -o docker_fe/${binary} src/github.com/microservices-demo/${microservice_name}/main.go", returnStatus:true)
+      // Finally we compile the go program
+      if (status != 0) {
+        error "Build failed!"
+      }
+    }
+  }
+}
+
+def stageBuildBackend(def context) {
+  stage('Build backend') {
+	// build your backend
+  }
+}
+
+def stageUnitTestFrontend(def context) {
+  stage('Unit Test Frontend') {
+    withEnv(["CGO_ENABLED=0", "GOCACHE=${WORKSPACE}/.cache", "GOPATH=${WORKSPACE}"]) {
+      sh 'mkdir -p build/test-results/test'
+      def gopkgs = sh(script: 'go list github.com/microservices-demo/user/users github.com/microservices-demo/user/api github.com/microservices-demo/user/db | grep -v /vendor', returnStdout: true).trim()
+      withEnv(["GOPKGS=${gopkgs}"]) {
+        def status = sh(script: 'go test -v -cover $GOPKGS 2>&1 > test-results.txt', returnStatus: true)
+        sh 'cat test-results.txt | go-junit-report > build/test-results/test/report.xml'
+        if (status != 0) {
+          error "go test -v -cover $GOPKGS failed!"
+        }
+      }
+    }
+  }
+}
+
+def stageUnitTestBackend(def context) {
+  stage('Unit Test Backend') {
+  	// copy into same test results folder
+  }
+}
+
+def stageTestDeployedComponents(def context, def deploymentInfo) {
+  stage('Test Deployed Component') {
+	sh (script : "oc port-forward ${deploymentInfo.podName} 8081 -n ${context.targetProject} &", label : "Setting up port forward for pod ${deploymentInfo.podName}")
+	// wait for port-forward to map the ports or for 10s
+	sh (script : "timeout 10s bash -c 'until ! curl -v --silent http://localhost:8081 2>&1 | grep -m 1 \"Connection refused\"; do sleep 1 ; done'; echo -e \\\\a",
+        label : "send request to service")
+  }
+}
+
+def stageCheckFormat(def context) {
+  stage('Check Format') {
+    def unformatted = sh(script: 'gofmt -l .', returnStdout: true)
+    if (unformatted) {
+      println "Unformatted files:\n${unformatted}"
+      error 'All files need to be gofmt\'d. Please run: gofmt -w .'
+    }
+  }
+}
+
+def stageLint(def context) {
+  stage('Lint') {
+    withEnv(["CGO_ENABLED=0", "GOCACHE=${WORKSPACE}/.cache", "GOPATH=${WORKSPACE}"]) {
+      sh "golangci-lint run src/github.com/microservices-demo/user/"
+    }
+  }
+}
