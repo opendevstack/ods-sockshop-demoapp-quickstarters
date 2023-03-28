@@ -27,11 +27,11 @@ parameters:
   - name: CPU_LIMIT
     displayName: CPU Limit
     description: Maximum CPU (milli) cores available for the container.
-    value: 100m
+    value: 400m
   - name: CPU_REQUEST
     displayName: CPU Request
     description: Minimum CPU (milli) cores requested for the container.
-    value: 50m
+    value: 200m
   - name: TAGVERSION
     displayName: tag version
     description: The version to be used.
@@ -139,7 +139,13 @@ objects:
         deploymentconfig: '${COMPONENT}'
       strategy:
         activeDeadlineSeconds: 21600
-        resources: {}
+        resources:
+          limits:
+            cpu:  '${CPU_LIMIT}'
+            memory: '${MEMORY_LIMIT}'
+          requests:
+            cpu:  '${CPU_REQUEST}'
+            memory: '${MEMORY_REQUEST}'
         rollingParams:
           intervalSeconds: 1
           maxSurge: 25%

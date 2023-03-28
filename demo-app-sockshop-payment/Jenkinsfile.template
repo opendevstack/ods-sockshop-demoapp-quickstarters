@@ -10,14 +10,24 @@ odsComponentPipeline(
   ],
   sonarQubeBranch: '*' 
 ) { context ->
-    stageCheckFormat(context)
-    stageBuild(context)
-    stageUnitTest(context)
-    stageLint(context)
-    stageScanForSonarqube(context)
-    stageStartOpenshiftBuild(context)
-    stageDeployToOpenshift(context)
+    odsComponentStageImportOpenShiftImageOrElse(context) {
+      stageCheckFormat(context)
+      stageBuild(context)
+      stageUnitTest(context)
+      stageLint(context)
+      odsComponentStageScanWithSonar(context)
+      odsComponentStageBuildOpenShiftImage(context)
+    }
+  
+    def deploymentInfo = odsComponentStageRolloutOpenShiftDeployment(context, [tailorParams: [
+      "PROJECT=${context.projectId}",
+      "COMPONENT=${context.componentId}",
+      "ENV=${context.environment}"
+    ]])
+  
+    echo "Deployment Info: ${deploymentInfo}"
 }
+
 def stageCheckFormat(def context) {
   stage('Check Format') {
     def unformatted = sh(script: 'gofmt -l .', returnStdout: true)

@@ -1,1 +1,1 @@
-FROM docker-registry.default.svc:5000/openshift/mongodb:3.2
+FROM public.ecr.aws/bitnami/mongodb:3.6.21
