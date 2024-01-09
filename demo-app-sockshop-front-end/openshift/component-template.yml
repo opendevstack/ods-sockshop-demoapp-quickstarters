@@ -183,4 +183,7 @@ objects:
         kind: Service
         name: '${COMPONENT}'
         weight: 100
+      tls:
+        termination: edge
+        insecureEdgeTerminationPolicy: Redirect
       wildcardPolicy: None          

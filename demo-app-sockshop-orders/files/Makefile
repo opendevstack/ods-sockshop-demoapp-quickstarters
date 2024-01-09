@@ -1,8 +1,7 @@
 .PHONY: install
 install:
-	mvn clean install -DskipTests -q
+	./mvnw clean install -DskipTests -q
 
 .PHONY: test
 test:
-	mvn test -q
-
+	./mvnw test -q
