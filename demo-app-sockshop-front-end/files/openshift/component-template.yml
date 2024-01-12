@@ -1,7 +1,6 @@
-apiVersion: v1
+apiVersion: template.openshift.io/v1
 kind: Template
 labels:
-  template: monorepo-component-template
   app: '${PROJECT}-${COMPONENT}'
 parameters:
   - name: PROJECT
@@ -47,46 +46,31 @@ objects:
     metadata:
       name: '${COMPONENT}'
     spec:
+      ipFamilies:
+        - IPv4
       ports:
-      -   name: 8080-tcp
+        - name: 8080-tcp
+          protocol: TCP
           port: 8080
-          protocol: TCP
           targetPort: 8080
-      -   name: erl-epmd
-          port: 4369
-          protocol: TCP
-          targetPort: 4369
-      -   name: rabbitmq-node-tls
-          port: 5671
-          protocol: TCP
-          targetPort: 5671
-      -   name: rabbitmq-node
-          port: 5672
-          protocol: TCP
-          targetPort: 5672
+      internalTrafficPolicy: Cluster
+      ipFamilyPolicy: SingleStack
       selector:
         app: '${PROJECT}-${COMPONENT}'
         deploymentconfig: '${COMPONENT}'
       sessionAffinity: None
       type: ClusterIP
-  - apiVersion: v1
+  - apiVersion: image.openshift.io/v1
     kind: ImageStream
     metadata:
-      name: '${COMPONENT}-backend'
+      name: '${COMPONENT}'
     spec:
       lookupPolicy:
         local: false
-  - apiVersion: v1
-    kind: ImageStream
-    metadata:
-      name: '${COMPONENT}-frontend'
-    spec:
-      lookupPolicy:
-        local: false
-  - apiVersion: v1
+  - apiVersion: build.openshift.io/v1
     kind: BuildConfig
     metadata:
-      name: ${COMPONENT}-frontend
+      name: ${COMPONENT}
     spec:
       completionDeadlineSeconds: "${{COMPLETION_DEADLINE_SECONDS}}"
       failedBuildsHistoryLimit: 5
@@ -94,7 +78,7 @@ objects:
       output:
         to:
           kind: ImageStreamTag
-          name: ${COMPONENT}-frontend:${TAGVERSION}
+          name: ${COMPONENT}:${TAGVERSION}
       postCommit: {}
       resources: {}
       runPolicy: Serial
@@ -105,29 +89,7 @@ objects:
         type: Docker
         dockerStrategy: {}
       successfulBuildsHistoryLimit: 5
-  - apiVersion: v1
-    kind: BuildConfig
-    metadata:
-      name: ${COMPONENT}-backend
-    spec:
-      completionDeadlineSeconds: "${{COMPLETION_DEADLINE_SECONDS}}"
-      failedBuildsHistoryLimit: 5
-      nodeSelector: null
-      output:
-        to:
-          kind: ImageStreamTag
-          name: ${COMPONENT}-backend:${TAGVERSION}
-      postCommit: {}
-      resources: {}
-      runPolicy: Serial
-      source:
-        type: Binary
-        binary: {}
-      strategy:
-        type: Docker
-        dockerStrategy: {}
-      successfulBuildsHistoryLimit: 5
-  - apiVersion: v1
+  - apiVersion: apps.openshift.io/v1
     kind: DeploymentConfig
     metadata:
       name: '${COMPONENT}'
@@ -141,11 +103,11 @@ objects:
         activeDeadlineSeconds: 21600
         resources:
           limits:
-            cpu:  '${CPU_LIMIT}'
-            memory: '${MEMORY_LIMIT}'
+            cpu:  ${CPU_LIMIT}
+            memory: ${MEMORY_LIMIT}
           requests:
-            cpu:  '${CPU_REQUEST}'
-            memory: '${MEMORY_REQUEST}'
+            cpu:  ${CPU_REQUEST}
+            memory: ${MEMORY_REQUEST}
         rollingParams:
           intervalSeconds: 1
           maxSurge: 25%
@@ -160,46 +122,39 @@ objects:
             deploymentconfig: '${COMPONENT}'
             env: '${ENV}'
         spec:
-          containers:
+          containers:   
             - env:
-                - name: RABBITMQ_HOST
-                  value: localhost
-              image: '${PROJECT}-${ENV}/${COMPONENT}-frontend:${TAGVERSION}'
+              - name: OPENSHIFT_HOST
+                value: ''
+              - name: OPENSHIFT_BUILD_NAMESPACE
+                value: '${PROJECT}-${ENV}'
+              - name: USE_SERVICE
+                value: 'true'
+              image: '${PROJECT}-${ENV}/${COMPONENT}:${TAGVERSION}'
               imagePullPolicy: IfNotPresent
-              name: '${COMPONENT}-frontend'
+              name: '${COMPONENT}'
               ports:
                 - containerPort: 8080
                   protocol: TCP
+              readinessProbe:
+                failureThreshold: 3
+                httpGet:
+                  path: /
+                  port: 8080
+                  scheme: HTTP
+                initialDelaySeconds: 20
+                periodSeconds: 10
+                successThreshold: 1
+                timeoutSeconds: 10
               resources:
                 limits:
-                  cpu:  '${CPU_LIMIT}'
-                  memory: '${MEMORY_LIMIT}'
+                  cpu:  ${CPU_LIMIT}
+                  memory: ${MEMORY_LIMIT}
                 requests:
-                  cpu:  '${CPU_REQUEST}'
-                  memory: '${MEMORY_REQUEST}'
+                  cpu:  ${CPU_REQUEST}
+                  memory: ${MEMORY_REQUEST}
               terminationMessagePath: /dev/termination-log
-              terminationMessagePolicy: File
-            - image: '${PROJECT}-${ENV}/${COMPONENT}-backend:${TAGVERSION}'
-              imagePullPolicy: IfNotPresent
-              name: '${COMPONENT}-backend'
-              ports:
-                - containerPort: 4369
-                  protocol: TCP
-                - containerPort: 5671
-                  protocol: TCP
-                - containerPort: 5672
-                  protocol: TCP
-                - containerPort: 25672
-                  protocol: TCP
-              resources:
-                limits:
-                  cpu:  '${CPU_LIMIT}'
-                  memory: '${MEMORY_LIMIT}'
-                requests:
-                  cpu:  '${CPU_REQUEST}'
-                  memory: '${MEMORY_REQUEST}'
-              terminationMessagePath: /dev/termination-log
-              terminationMessagePolicy: File              
+              terminationMessagePolicy: File                             
           dnsPolicy: ClusterFirst
           restartPolicy: Always
           schedulerName: default-scheduler
@@ -211,18 +166,28 @@ objects:
         - imageChangeParams:
             automatic: true
             containerNames:
-              - '${COMPONENT}-backend'
+              - '${COMPONENT}'
             from:
               kind: ImageStreamTag
-              name: '${COMPONENT}-backend:${TAGVERSION}'
+              name: '${COMPONENT}:${TAGVERSION}'
               namespace: '${PROJECT}-${ENV}'
           type: ImageChange
-        - imageChangeParams:
-            automatic: true
-            containerNames:
-              - '${COMPONENT}-frontend'
-            from:
-              kind: ImageStreamTag
-              name: '${COMPONENT}-frontend:${TAGVERSION}'
-              namespace: '${PROJECT}-${ENV}'
-          type: ImageChange
+  - apiVersion: route.openshift.io/v1
+    kind: Route
+    metadata:
+      annotations:
+        openshift.io/host.generated: "true"
+      labels:
+        app: '${PROJECT}-${COMPONENT}'
+      name: '${COMPONENT}'
+    spec:
+      port:
+        targetPort: 8080-tcp
+      to:
+        kind: Service
+        name: '${COMPONENT}'
+        weight: 100
+      tls:
+        termination: edge
+        insecureEdgeTerminationPolicy: Redirect
+      wildcardPolicy: None          

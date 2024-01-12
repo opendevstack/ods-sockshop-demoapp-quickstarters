@@ -1,4 +1,4 @@
-apiVersion: v1
+apiVersion: template.openshift.io/v1
 kind: Template
 labels:
   template: monorepo-component-template
@@ -40,38 +40,42 @@ parameters:
   - name: COMPLETION_DEADLINE_SECONDS
     displayName: Completion Deadline Seconds
     description: how long the docker build of the component can last before it is canceled
-    value: "1800"
+    value: "1800"       
 objects:
   - apiVersion: v1
     kind: Service
     metadata:
       name: '${COMPONENT}'
     spec:
+      ipFamilies:
+        - IPv4
       ports:
-        -   name: 8080-tcp
-            port: 8080
-            protocol: TCP
-            targetPort: 8080
+        - name: 8080-tcp
+          protocol: TCP
+          port: 8080
+          targetPort: 8080
+      internalTrafficPolicy: Cluster
       selector:
         app: '${PROJECT}-${COMPONENT}'
         deploymentconfig: '${COMPONENT}'
       sessionAffinity: None
+      ipFamilyPolicy: SingleStack
       type: ClusterIP
-  - apiVersion: v1
+  - apiVersion: image.openshift.io/v1
     kind: ImageStream
     metadata:
       name: '${COMPONENT}-backend'
     spec:
       lookupPolicy:
         local: false
-  - apiVersion: v1
+  - apiVersion: image.openshift.io/v1
     kind: ImageStream
     metadata:
       name: '${COMPONENT}-frontend'
     spec:
       lookupPolicy:
         local: false
-  - apiVersion: v1
+  - apiVersion: build.openshift.io/v1
     kind: BuildConfig
     metadata:
       name: ${COMPONENT}-frontend
@@ -93,7 +97,7 @@ objects:
         type: Docker
         dockerStrategy: {}
       successfulBuildsHistoryLimit: 5
-  - apiVersion: v1
+  - apiVersion: build.openshift.io/v1
     kind: BuildConfig
     metadata:
       name: ${COMPONENT}-backend
@@ -129,7 +133,9 @@ objects:
       resources:
         requests:
           storage: 1Gi
-  - apiVersion: v1
+      storageClassName: standard-nas-eco
+      volumeMode: Filesystem
+  - apiVersion: apps.openshift.io/v1
     kind: DeploymentConfig
     metadata:
       name: '${COMPONENT}'
@@ -141,14 +147,16 @@ objects:
         deploymentconfig: '${COMPONENT}'
       strategy:
         activeDeadlineSeconds: 21600
+        type: Recreate
+        recreateParams:
+          timeoutSeconds: 600
         resources:
           limits:
-            cpu:  '${CPU_LIMIT}'
-            memory: '${MEMORY_LIMIT}'
+            cpu:  ${CPU_LIMIT}
+            memory: ${MEMORY_LIMIT}
           requests:
-            cpu:  '${CPU_REQUEST}'
-            memory: '${MEMORY_REQUEST}'
-        type: Recreate
+            cpu:  ${CPU_REQUEST}
+            memory: ${MEMORY_REQUEST} 
       template:
         metadata:
           labels:
@@ -157,7 +165,24 @@ objects:
             env: '${ENV}'
         spec:
           containers:
-            - image: '${PROJECT}-${ENV}/${COMPONENT}-frontend:${TAGVERSION}'
+            - env:
+              - name: HATEAOS
+                value: '${COMPONENT}:8080'
+              - name: MONGO_PASS
+                valueFrom:
+                  secretKeyRef:
+                    key: database-password
+                    name: '${COMPONENT}'
+              - name: MONGO_USER
+                valueFrom:
+                  secretKeyRef:
+                    key: database-user
+                    name: '${COMPONENT}'
+              - name: MONGO_DB
+                value: localhost
+              - name: MONGO_TEST_DB
+                value: users          
+              image: '${PROJECT}-${ENV}/${COMPONENT}-frontend:${TAGVERSION}'
               imagePullPolicy: IfNotPresent
               name: '${COMPONENT}-frontend'
               ports:
@@ -165,39 +190,35 @@ objects:
                   protocol: TCP
               resources:
                 limits:
-                  cpu:  '${CPU_LIMIT}'
-                  memory: '${MEMORY_LIMIT}'
+                  cpu:  ${CPU_LIMIT}
+                  memory: ${MEMORY_LIMIT}
                 requests:
-                  cpu:  '${CPU_REQUEST}'
-                  memory: '${MEMORY_REQUEST}'
+                  cpu:  ${CPU_REQUEST}
+                  memory: ${MEMORY_REQUEST}
               terminationMessagePath: /dev/termination-log
               terminationMessagePolicy: File
-              env:
-                - name: DSN
-                  value: 'user4HB:oK1WPDBNnDDspd5x@tcp(localhost:3306)/socksdb'
-                - name: MYSQL_DATABASE
-                  valueFrom:
-                    secretKeyRef:
-                      key: database-name
-                      name: '${COMPONENT}'
-                - name: MYSQL_USER
-                  valueFrom:
-                    secretKeyRef:
-                      key: database-user
-                      name: '${COMPONENT}'
-                - name: MYSQL_PASSWORD
-                  valueFrom:
-                    secretKeyRef:
-                      key: database-password
-                      name: '${COMPONENT}'
-                - name: MYSQL_ROOT_PASSWORD
-                  valueFrom:
-                    secretKeyRef:
-                      key: database-root-password
-                      name: '${COMPONENT}'
-                - name: MYSQL_HOST
-                  value: 127.0.0.1
-            - image: '${PROJECT}-${ENV}/${COMPONENT}-backend:${TAGVERSION}'
+            - env:
+              - name: MONGODB_USERNAME
+                valueFrom:
+                  secretKeyRef:
+                    key: database-user
+                    name: '${COMPONENT}'
+              - name: MONGODB_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    key: database-password
+                    name: '${COMPONENT}'
+              - name: MONGODB_ROOT_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    key: database-admin-password
+                    name: '${COMPONENT}'
+              - name: MONGODB_DATABASE
+                valueFrom:
+                  secretKeyRef:
+                    key: database-name
+                    name: '${COMPONENT}'                
+              image: '${PROJECT}-${ENV}/${COMPONENT}-backend:${TAGVERSION}'
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 failureThreshold: 3
@@ -205,7 +226,7 @@ objects:
                 periodSeconds: 10
                 successThreshold: 1
                 tcpSocket:
-                  port: 3306
+                  port: 27017
                 timeoutSeconds: 1
               name: '${COMPONENT}-backend'
               readinessProbe:
@@ -214,45 +235,24 @@ objects:
                     - /bin/sh
                     - -i
                     - -c
-                    - MYSQL_PWD="$MYSQL_PASSWORD" mysql -h 127.0.0.1 -u $MYSQL_USER -D $MYSQL_DATABASE
-                      -e 'SELECT 1'
+                    - mongo 127.0.0.1:27017/$MONGODB_DATABASE -u $MONGODB_USERNAME -p $MONGODB_PASSWORD
+                      --eval="quit()"
                 failureThreshold: 3
-                initialDelaySeconds: 10
+                initialDelaySeconds: 3
                 periodSeconds: 10
                 successThreshold: 1
-                timeoutSeconds: 2
+                timeoutSeconds: 1
               resources:
                 limits:
-                  cpu:  '${CPU_LIMIT}'
-                  memory: '${MEMORY_LIMIT}'
+                  cpu:  ${CPU_LIMIT}
+                  memory: ${MEMORY_LIMIT}
                 requests:
-                  cpu:  '${CPU_REQUEST}'
-                  memory: '${MEMORY_REQUEST}'
+                  cpu:  ${CPU_REQUEST}
+                  memory: ${MEMORY_REQUEST}
               terminationMessagePath: /dev/termination-log
-              terminationMessagePolicy: File
-              env:
-                - name: MYSQL_DATABASE
-                  valueFrom:
-                    secretKeyRef:
-                      key: database-name
-                      name: '${COMPONENT}'
-                - name: MYSQL_USER
-                  valueFrom:
-                    secretKeyRef:
-                      key: database-user
-                      name: '${COMPONENT}'
-                - name: MYSQL_PASSWORD
-                  valueFrom:
-                    secretKeyRef:
-                      key: database-password
-                      name: '${COMPONENT}'
-                - name: MYSQL_ROOT_PASSWORD
-                  valueFrom:
-                    secretKeyRef:
-                      key: database-root-password
-                      name: '${COMPONENT}'
+              terminationMessagePolicy: File              
               volumeMounts:
-                - mountPath: /var/lib/mysql/data
+                - mountPath: /var/lib/mongodb/data
                   name: ${COMPONENT}-backend-data
           dnsPolicy: ClusterFirst
           restartPolicy: Always
@@ -286,13 +286,19 @@ objects:
           type: ImageChange
   - apiVersion: v1
     data:
-      database-name: c29ja3NkYg==
-      database-password: b0sxV1BEQk5uRERzcGQ1eA==
-      database-root-password: YzNDSndNR0JzdThSYkFXcQ==
-      database-user: dXNlcjRIQg==
+        database-admin-password: YzNDSndNR0JzdThSYkFXcQ==
+        database-name: dXNlcnM=
+        database-password: b0sxV1BEQk5uRERzcGQ1eA==
+        database-user: dXNlckdCVg==
     kind: Secret
     metadata:
-      labels:
-        app: '${PROJECT}-${COMPONENT}'
-      name: '${COMPONENT}'
+        annotations:
+            template.openshift.io/expose-admin_password: '{.data[''database-admin-password'']}'
+            template.openshift.io/expose-database_name: '{.data[''database-name'']}'
+            template.openshift.io/expose-password: '{.data[''database-password'']}'
+            template.openshift.io/expose-username: '{.data[''database-user'']}'
+        labels:
+            app: '${PROJECT}-${COMPONENT}'
+            template: mongodb-persistent-template
+        name: '${COMPONENT}'
     type: Opaque
