@@ -40,6 +40,10 @@ parameters:
     displayName: Completion Deadline Seconds
     description: how long the docker build of the component can last before it is canceled
     value: "1800"
+  - name: TAILOR_NAMESPACE
+    required: true
+  - name: ODS_OPENSHIFT_APP_DOMAIN
+    required: true
 objects:
   - apiVersion: v1
     kind: Service
@@ -181,6 +185,7 @@ objects:
         app: '${PROJECT}-${COMPONENT}'
       name: '${COMPONENT}'
     spec:
+      host: ${COMPONENT}-${TAILOR_NAMESPACE}.${ODS_OPENSHIFT_APP_DOMAIN}
       port:
         targetPort: 8080-tcp
       to:
