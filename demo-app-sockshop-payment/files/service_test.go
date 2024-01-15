@@ -24,8 +24,7 @@ func TestFailOverCertainAmount(t *testing.T) {
 
 func TestFailIfAmountIsZero(t *testing.T) {
 	_, err := NewAuthorisationService(10).Authorise(0)
-	_, ok := err.(error)
-	if !ok {
+	if err == nil {
 		t.Errorf("Authorise returned unexpected result: got %v want %v",
 			err, "Zero payment")
 	}
@@ -33,8 +32,7 @@ func TestFailIfAmountIsZero(t *testing.T) {
 
 func TestFailIfAmountNegative(t *testing.T) {
 	_, err := NewAuthorisationService(10).Authorise(-1)
-	_, ok := err.(error)
-	if !ok {
+	if err == nil {
 		t.Errorf("Authorise returned unexpected result: got %v want %v",
 			err, "Negative payment")
 	}

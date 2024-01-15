@@ -51,7 +51,7 @@ def stageCheckFormat(def context) {
 
 def stageLint(def context) {
   stage('Lint') {
-    withEnv(["CGO_ENABLED=0", "GOCACHE=${WORKSPACE}/.cache", "GOPATH=${WORKSPACE}"]) {
+    withEnv(["CGO_ENABLED=0", "GOCACHE=${WORKSPACE}/.cache", "GOPATH=${WORKSPACE}", "GO111MODULE=off"]) {
       sh "golangci-lint run src/github.com/microservices-demo/catalogue/"
     }
   }
@@ -61,7 +61,7 @@ def stageBuildFrontend(def context) {
   stage('Build frontend') {
     def binary = "app_linux_amd64"
     def microservice_name = "catalogue"
-    withEnv(["CGO_ENABLED=0", "GOOS=linux", "GOCACHE=${WORKSPACE}/.cache", "GOPATH=${WORKSPACE}"]) {
+    withEnv(["CGO_ENABLED=0", "GOOS=linux", "GOCACHE=${WORKSPACE}/.cache", "GOPATH=${WORKSPACE}", "GOBIN=${WORKSPACE}"]) {
       // We create the structure to compile the project
       def status = sh(script: "mkdir -p src/github.com/microservices-demo/${microservice_name}/", returnStatus:true)
       if (status != 0) {
@@ -72,15 +72,11 @@ def stageBuildFrontend(def context) {
         error "Can´t copy the app source inside the folder to compile!"
       }
 
-      // We need and extra tool (imposible to install in /usr/local/bin permission error, then only download --> -d)
-      status = sh(script: "go get -u -d github.com/FiloSottile/gvt", returnStatus:true)
+      // We need and extra tool
+      //status = sh(script: "go get -u -d github.com/FiloSottile/gvt", returnStatus:true)
+      status = sh(script: "go install github.com/FiloSottile/gvt@latest", returnStatus:true)
       if (status != 0) {
         error "Can´t download gvt to process dependencies!"
-      }
-      // We compile the tool
-      status = sh(script: "go build -o gvt github.com/FiloSottile/gvt", returnStatus:true)
-      if (status != 0) {
-        error "Can´t compile gvt!"
       }
 
       // We download the dependencies using the tool gvt
@@ -88,7 +84,8 @@ def stageBuildFrontend(def context) {
       if (status != 0) {
         error "Can´t get dependencies with gvt!"
       }
-      status = sh(script: "go build -o docker_fe/${binary} github.com/microservices-demo/${microservice_name}/cmd/${microservice_name}svc", returnStatus:true)
+      
+      status = sh(script: "export GO111MODULE=off && go build -o docker_fe/${binary} github.com/microservices-demo/${microservice_name}/cmd/${microservice_name}svc", returnStatus:true)
       // Finally we compile the go program
       if (status != 0) {
         error "Build failed!"
@@ -111,7 +108,7 @@ def stageBuildBackend(def context) {
 
 def stageUnitTestFrontend(def context) {
   stage('Unit Test Frontend') {
-    withEnv(["CGO_ENABLED=0", "GOCACHE=${WORKSPACE}/.cache", "GOPATH=${WORKSPACE}"]) {
+    withEnv(["CGO_ENABLED=0", "GOCACHE=${WORKSPACE}/.cache", "GOPATH=${WORKSPACE}", "GO111MODULE=off"]) {
       sh 'mkdir -p build/test-results/test'
       def gopkgs = sh(script: 'go list github.com/microservices-demo/catalogue | grep -v /vendor', returnStdout: true).trim()
       withEnv(["GOPKGS=${gopkgs}"]) {

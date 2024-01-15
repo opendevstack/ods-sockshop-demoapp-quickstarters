@@ -53,6 +53,12 @@ def stageBuildFrontend(def context) {
       if (status != 0) {
         error "Can´t copy the app source inside the folder to compile!"
       }
+	  
+	  status = sh(script: 'go mod tidy', returnStatus:true)
+      // Manage the dependencies
+      if (status != 0) {
+        error "Manage dependencies failed!"
+      }
 
       status = sh(script: "go build -o docker_fe/${binary} src/github.com/microservices-demo/${microservice_name}/main.go", returnStatus:true)
       // Finally we compile the go program
