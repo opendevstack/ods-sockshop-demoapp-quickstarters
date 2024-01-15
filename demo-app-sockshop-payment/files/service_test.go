@@ -1,7 +1,7 @@
 package payment
 
-import "testing"
 import "fmt"
+import "testing"
 
 func TestAuthorise(t *testing.T) {
 	result, _ := NewAuthorisationService(100).Authorise(10)
@@ -26,7 +26,7 @@ func TestFailIfAmountIsZero(t *testing.T) {
 	_, err := NewAuthorisationService(10).Authorise(0)
 	if err == nil {
 		t.Errorf("Authorise returned unexpected result: got %v want %v",
-			err, "Zero payment")
+			err, "Zero payment!")
 	}
 }
 
@@ -34,6 +34,6 @@ func TestFailIfAmountNegative(t *testing.T) {
 	_, err := NewAuthorisationService(10).Authorise(-1)
 	if err == nil {
 		t.Errorf("Authorise returned unexpected result: got %v want %v",
-			err, "Negative payment")
+			err, "Negative payment!")
 	}
 }

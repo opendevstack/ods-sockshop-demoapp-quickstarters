@@ -295,7 +295,7 @@ objects:
             template.openshift.io/expose-username: '{.data[''database-user'']}'
         labels:
             app: '${PROJECT}-${COMPONENT}'
-            template: mongodb-persistent-template
+            template: monorepo-component-template
         name: '${COMPONENT}'
     type: Opaque
 
