@@ -1,8 +1,9 @@
-FROM adoptopenjdk/openjdk11:alpine-jre
+FROM ubi8/openjdk-11
 
 WORKDIR /app
 COPY app.jar ./app.jar
 
+USER root
 # See https://docs.openshift.com/container-platform/3.11/creating_images/guidelines.html
 RUN chgrp -R 0 /app && \
     chmod -R g=u /app

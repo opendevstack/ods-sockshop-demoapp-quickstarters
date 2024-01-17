@@ -1,1 +1,1 @@
-FROM rabbitmq:3.6.8
+FROM public.ecr.aws/docker/library/rabbitmq:3.8

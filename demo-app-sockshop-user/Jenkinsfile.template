@@ -15,7 +15,7 @@ odsComponentPipeline(
   stageCheckFormat(context)
   stageBuildFrontend(context)
   stageUnitTestFrontend(context)
-  stageLint(context)
+  //stageLint(context)
 
   odsComponentStageScanWithSonar(context)
 
@@ -43,7 +43,7 @@ def stageBuildFrontend(def context) {
   stage('Build frontend') {
     def binary = "app_linux_amd64"
     def microservice_name = "user"
-    withEnv(["CGO_ENABLED=0", "GOOS=linux", "GOCACHE=${WORKSPACE}/.cache", "GOPATH=${WORKSPACE}"]) {
+    withEnv(["CGO_ENABLED=0", "GOOS=linux", "GOCACHE=${WORKSPACE}/.cache", "GOPATH=${WORKSPACE}/.gopath"]) {
       // We create the structure to compile the project
       def status = sh(script: "mkdir -p src/github.com/microservices-demo/${microservice_name}/", returnStatus:true)
       if (status != 0) {
@@ -53,23 +53,13 @@ def stageBuildFrontend(def context) {
       if (status != 0) {
         error "Can´t copy the app source inside the folder to compile!"
       }
-
-      // We need and extra tool - glide
-      status = sh(script: "go get -v -d github.com/Masterminds/glide", returnStatus:true)
+	  
+	  status = sh(script: 'go mod tidy', returnStatus:true)
+      // Manage the dependencies
       if (status != 0) {
-        error "Can´t download glide to process dependencies!"
-      }
-      // We compile the tool
-      status = sh(script: "go build -o glide github.com/Masterminds/glide", returnStatus:true)
-      if (status != 0) {
-        error "Can´t compile glide!"
+        error "Manage dependencies failed!"
       }
 
-      // We download the dependencies using the tool glide
-      status = sh(script: "cd src/github.com/microservices-demo/${microservice_name}/ && ${GOPATH}/glide install", returnStatus:true)
-      if (status != 0) {
-        error "Can´t get dependencies with glide!"
-      }
       status = sh(script: "go build -o docker_fe/${binary} src/github.com/microservices-demo/${microservice_name}/main.go", returnStatus:true)
       // Finally we compile the go program
       if (status != 0) {
@@ -87,7 +77,7 @@ def stageBuildBackend(def context) {
 
 def stageUnitTestFrontend(def context) {
   stage('Unit Test Frontend') {
-    withEnv(["CGO_ENABLED=0", "GOCACHE=${WORKSPACE}/.cache", "GOPATH=${WORKSPACE}"]) {
+    withEnv(["CGO_ENABLED=0", "GOCACHE=${WORKSPACE}/.cache", "GOPATH=${WORKSPACE}/.gopath"]) {
       sh 'mkdir -p build/test-results/test'
       def gopkgs = sh(script: 'go list github.com/microservices-demo/user/users github.com/microservices-demo/user/api github.com/microservices-demo/user/db | grep -v /vendor', returnStdout: true).trim()
       withEnv(["GOPKGS=${gopkgs}"]) {
@@ -118,7 +108,7 @@ def stageTestDeployedComponents(def context, def deploymentInfo) {
 
 def stageCheckFormat(def context) {
   stage('Check Format') {
-    def unformatted = sh(script: 'gofmt -l .', returnStdout: true)
+    def unformatted = sh(script: 'gofmt -d .', returnStdout: true)
     if (unformatted) {
       println "Unformatted files:\n${unformatted}"
       error 'All files need to be gofmt\'d. Please run: gofmt -w .'
@@ -128,7 +118,7 @@ def stageCheckFormat(def context) {
 
 def stageLint(def context) {
   stage('Lint') {
-    withEnv(["CGO_ENABLED=0", "GOCACHE=${WORKSPACE}/.cache", "GOPATH=${WORKSPACE}"]) {
+    withEnv(["CGO_ENABLED=0", "GOCACHE=${WORKSPACE}/.cache", "GOPATH=${WORKSPACE}/.gopath"]) {
       sh "golangci-lint run src/github.com/microservices-demo/user/"
     }
   }

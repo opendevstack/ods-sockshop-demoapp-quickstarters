@@ -1,4 +1,4 @@
-apiVersion: v1
+apiVersion: template.openshift.io/v1
 kind: Template
 labels:
   app: '${PROJECT}-${COMPONENT}'
@@ -26,11 +26,11 @@ parameters:
   - name: CPU_LIMIT
     displayName: CPU Limit
     description: Maximum CPU (milli) cores available for the container.
-    value: 100m
+    value: 400m
   - name: CPU_REQUEST
     displayName: CPU Request
     description: Minimum CPU (milli) cores requested for the container.
-    value: 50m
+    value: 200m
   - name: TAGVERSION
     displayName: tag version
     description: The version to be used.
@@ -40,30 +40,38 @@ parameters:
     displayName: Completion Deadline Seconds
     description: how long the docker build of the component can last before it is canceled
     value: "1800"
+  - name: TAILOR_NAMESPACE
+    required: true
+  - name: ODS_OPENSHIFT_APP_DOMAIN
+    required: true
 objects:
   - apiVersion: v1
     kind: Service
     metadata:
       name: '${COMPONENT}'
     spec:
+      ipFamilies:
+        - IPv4
       ports:
-      -   name: 8080-tcp
-          port: 8080
+        - name: 8080-tcp
           protocol: TCP
+          port: 8080
           targetPort: 8080
+      internalTrafficPolicy: Cluster
+      ipFamilyPolicy: SingleStack
       selector:
         app: '${PROJECT}-${COMPONENT}'
         deploymentconfig: '${COMPONENT}'
       sessionAffinity: None
       type: ClusterIP
-  - apiVersion: v1
+  - apiVersion: image.openshift.io/v1
     kind: ImageStream
     metadata:
       name: '${COMPONENT}'
     spec:
       lookupPolicy:
         local: false
-  - apiVersion: v1
+  - apiVersion: build.openshift.io/v1
     kind: BuildConfig
     metadata:
       name: ${COMPONENT}
@@ -85,7 +93,7 @@ objects:
         type: Docker
         dockerStrategy: {}
       successfulBuildsHistoryLimit: 5
-  - apiVersion: v1
+  - apiVersion: apps.openshift.io/v1
     kind: DeploymentConfig
     metadata:
       name: '${COMPONENT}'
@@ -97,7 +105,13 @@ objects:
         deploymentconfig: '${COMPONENT}'
       strategy:
         activeDeadlineSeconds: 21600
-        resources: {}
+        resources:
+          limits:
+            cpu:  ${CPU_LIMIT}
+            memory: ${MEMORY_LIMIT}
+          requests:
+            cpu:  ${CPU_REQUEST}
+            memory: ${MEMORY_REQUEST}
         rollingParams:
           intervalSeconds: 1
           maxSurge: 25%
@@ -138,11 +152,11 @@ objects:
                 timeoutSeconds: 10
               resources:
                 limits:
-                  cpu:  '${CPU_LIMIT}'
-                  memory: '${MEMORY_LIMIT}'
+                  cpu:  ${CPU_LIMIT}
+                  memory: ${MEMORY_LIMIT}
                 requests:
-                  cpu:  '${CPU_REQUEST}'
-                  memory: '${MEMORY_REQUEST}'
+                  cpu:  ${CPU_REQUEST}
+                  memory: ${MEMORY_REQUEST}
               terminationMessagePath: /dev/termination-log
               terminationMessagePolicy: File                             
           dnsPolicy: ClusterFirst
@@ -162,7 +176,7 @@ objects:
               name: '${COMPONENT}:${TAGVERSION}'
               namespace: '${PROJECT}-${ENV}'
           type: ImageChange
-  - apiVersion: v1
+  - apiVersion: route.openshift.io/v1
     kind: Route
     metadata:
       annotations:
@@ -171,10 +185,14 @@ objects:
         app: '${PROJECT}-${COMPONENT}'
       name: '${COMPONENT}'
     spec:
+      host: ${COMPONENT}-${TAILOR_NAMESPACE}.${ODS_OPENSHIFT_APP_DOMAIN}
       port:
         targetPort: 8080-tcp
       to:
         kind: Service
         name: '${COMPONENT}'
         weight: 100
+      tls:
+        termination: edge
+        insecureEdgeTerminationPolicy: Redirect
       wildcardPolicy: None          
